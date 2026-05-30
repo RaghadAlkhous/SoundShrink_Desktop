@@ -7,7 +7,7 @@ namespace SoundShrink_Desktop.Analyzers
 {
     public class AudioAnalyzer
     {
-        private const int FFT_SIZE = 1024;
+        private const int FFT_SIZE = 1084;
         private readonly float[] _fftBuffer;
         private int _bufferPosition;
         private readonly object _lockObject = new object();

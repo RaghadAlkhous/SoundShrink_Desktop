@@ -25,14 +25,12 @@ namespace SoundShrink_Desktop
         private BufferedWaveProvider _bufferedProvider;
         private ContextMenuStrip _fileContextMenu;
 
-
         public Form1()
         {
             InitializeComponent();
             _audioService = new AudioService();
             _analyzer = new AudioAnalyzer();
 
-            // إعداد الواجهة
             SetupUI();
             SetupContextMenu();
             SetupTimers();
@@ -45,7 +43,6 @@ namespace SoundShrink_Desktop
             SetupWavePanel();
             SetupSpectrumPanel();
             SetupControlsPanel();
-            SetupDropZone();
         }
 
         private void SetupInfoPanel()
@@ -150,18 +147,12 @@ namespace SoundShrink_Desktop
             lblTotalTime.Location = new Point(100, 15);
 
             timePanel.Controls.AddRange(new Control[] {
-        lblCurrentTime,
-        new Label { Text = "/", ForeColor = Color.Gray, Location = new Point(85, 18), AutoSize = true },
-        lblTotalTime
-    });
+                lblCurrentTime,
+                new Label { Text = "/", ForeColor = Color.Gray, Location = new Point(85, 18), AutoSize = true },
+                lblTotalTime
+            });
             buttonsPanel.Controls.Add(timePanel);
             controlsPanel.Controls.Add(buttonsPanel);
-        }
-
-        private void SetupDropZone()
-        {
-            dropPanel.Paint += DropPanel_Paint;
-            dropPanel.Click += (s, e) => OpenFileBrowser();
         }
 
         private void AddInfoLabel(string text, string name, int col, int row)
@@ -220,22 +211,7 @@ namespace SoundShrink_Desktop
 
         private void EnableDragDrop()
         {
-            AllowDrop = true;
-            DragEnter += (s, e) =>
-            {
-                if (e.Data.GetDataPresent(DataFormats.FileDrop))
-                {
-                    var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                    if (files.Length > 0 && IsAudioFile(files[0]))
-                        e.Effect = DragDropEffects.Copy;
-                }
-            };
-
-            DragDrop += (s, e) =>
-            {
-                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                if (files.Length > 0) HandleFileLoad(files[0]);
-            };
+            dropPanel.AllowDrop = true;
         }
 
         #region Helper Methods
@@ -465,7 +441,6 @@ namespace SoundShrink_Desktop
                         _analyzer.AddSample(buffer[i]);
                     }
 
-                    // تحديث مناطق الرسم بذكاء وأمان من خلفية المعالجة
                     UpdateBoxHandler(wavePictureBox);
                     UpdateBoxHandler(spectrumPictureBox);
                 }
@@ -661,20 +636,36 @@ namespace SoundShrink_Desktop
                 g.DrawRectangle(pen, 0, 0, width - 1, height - 1);
         }
 
-        private void DropPanel_Paint(object sender, PaintEventArgs e)
-        {
-            Panel panel = sender as Panel;
-            using (Pen pen = new Pen(Color.FromArgb(0, 120, 215), 3))
-            {
-                pen.DashStyle = DashStyle.Dash;
-                e.Graphics.DrawRectangle(pen, 15, 15, panel.Width - 31, panel.Height - 31);
-            }
+        #endregion
 
-            TextRenderer.DrawText(e.Graphics, "🎵 اسحب ملف الصوت هنا", new Font("Segoe UI", 14F, FontStyle.Bold),
-                new Rectangle(0, panel.Height / 2 - 20, panel.Width, 40), Color.White, TextFormatFlags.HorizontalCenter);
+        #region Drop Zone Events 
+
+        private void DropZone_Click(object sender, EventArgs e)
+        {
+            OpenFileBrowser(); 
+        }
+
+        private void Form1_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (files.Length > 0 && IsAudioFile(files[0]))
+                    e.Effect = DragDropEffects.Copy;
+            }
+        }
+
+        private void Form1_DragDrop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                var files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (files.Length > 0) HandleFileLoad(files[0]);
+            }
         }
 
         #endregion
+
 
         #region Event Handlers & Cleanup
 
