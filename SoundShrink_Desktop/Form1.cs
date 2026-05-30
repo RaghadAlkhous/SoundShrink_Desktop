@@ -2,12 +2,14 @@
 using System.Drawing;
 using System.Windows.Forms;
 using NAudio.Wave;
+using System.Collections.Generic;
 using SoundShrink_Desktop.Models;
 using SoundShrink_Desktop.Services;
+using SoundShrink_Desktop.Algorithms;
 using SoundShrink_Desktop.Analyzers;
 using System.Threading.Tasks;
 using System.Drawing.Drawing2D;
-
+using System.IO;
 namespace SoundShrink_Desktop
 {
     public partial class Form1 : Form
@@ -24,7 +26,20 @@ namespace SoundShrink_Desktop
         private TimeSpan _playbackOffset;
         private BufferedWaveProvider _bufferedProvider;
         private ContextMenuStrip _fileContextMenu;
+        private ICompressionAlgorithm _currentAlgorithm;
+        private byte[] _compressedData;
+        private CompressionResult _lastCompressionResult;
+        private Panel _progressOverlay;
+        private ProgressBar _compressionProgressBar;
+        private Label _progressLabel;
 
+        // متغيرات مراقبة الضغط المتقدمة
+        private CompressionProgressForm _progressForm;
+        private CompressionMonitor _monitor;
+        private System.Threading.CancellationTokenSource _cancelSource;
+        private DateTime _compressionStartTime;
+        private long _totalBytesToProcess;
+        private long _bytesProcessed;
         public Form1()
         {
             InitializeComponent();
@@ -35,6 +50,8 @@ namespace SoundShrink_Desktop
             SetupContextMenu();
             SetupTimers();
             EnableDragDrop();
+
+            SetupProgressOverlay();
         }
 
         private void SetupUI()
@@ -110,20 +127,76 @@ namespace SoundShrink_Desktop
             SetupButton(btnStop, "⏹ إيقاف", Color.FromArgb(220, 53, 69), 340, BtnStop_Click);
             btnStop.Enabled = false;
 
-            Button btnOptions = new Button
-            {
-                Text = "⋯",
-                Size = new Size(45, 45),
-                Location = new Point(480, 12),
-                BackColor = Color.FromArgb(108, 117, 125),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
-                Cursor = Cursors.Hand
-            };
-            btnOptions.FlatAppearance.BorderSize = 0;
-            btnOptions.Click += (s, e) => _fileContextMenu.Show(btnOptions, new Point(0, btnOptions.Height));
-            buttonsPanel.Controls.Add(btnOptions);
+            // تعريف الـ MenuStrip
+            this.menuStrip1 = new System.Windows.Forms.MenuStrip();
+            this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.changeFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.removeFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.compressToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.nonlinearQuantizationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.dpcmToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.predictiveCodingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.deltaModulationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.adaptiveDeltaModulationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveCompressedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+
+            // menuStrip1
+            this.menuStrip1.Dock = System.Windows.Forms.DockStyle.Top;
+            this.menuStrip1.BackColor = Color.FromArgb(45, 45, 50);
+            this.menuStrip1.ForeColor = Color.White;
+            this.menuStrip1.Font = new Font("Segoe UI", 9F);
+            this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+    this.fileToolStripMenuItem});
+
+            // fileToolStripMenuItem
+            this.fileToolStripMenuItem.Text = "ملف";
+            this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+    this.changeFileToolStripMenuItem,
+    this.removeFileToolStripMenuItem,
+    this.compressToolStripMenuItem,
+    this.saveCompressedToolStripMenuItem});
+
+            // changeFileToolStripMenuItem
+            this.changeFileToolStripMenuItem.Text = "🔄 تغيير الملف";
+            this.changeFileToolStripMenuItem.Click += new System.EventHandler(this.ChangeFile_Click);
+
+            // removeFileToolStripMenuItem
+            this.removeFileToolStripMenuItem.Text = "🗑️ إزالة الملف";
+            this.removeFileToolStripMenuItem.Click += new System.EventHandler(this.RemoveFile_Click);
+
+            // compressToolStripMenuItem (قائمة فرعية للخوارزميات)
+            this.compressToolStripMenuItem.Text = "🗜️ ضغط الملف";
+            this.compressToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+    this.nonlinearQuantizationToolStripMenuItem,
+    this.dpcmToolStripMenuItem,
+    this.predictiveCodingToolStripMenuItem,
+    this.deltaModulationToolStripMenuItem,
+    this.adaptiveDeltaModulationToolStripMenuItem});
+
+            // الخوارزميات الخمس
+            this.nonlinearQuantizationToolStripMenuItem.Text = "Nonlinear Quantization";
+            this.nonlinearQuantizationToolStripMenuItem.Click += new System.EventHandler(this.Compress_NonlinearQuantization_Click);
+
+            this.dpcmToolStripMenuItem.Text = "DPCM";
+            this.dpcmToolStripMenuItem.Click += new System.EventHandler(this.Compress_DPCM_Click);
+
+            this.predictiveCodingToolStripMenuItem.Text = "Predictive Differential Coding";
+            this.predictiveCodingToolStripMenuItem.Click += new System.EventHandler(this.Compress_PredictiveCoding_Click);
+
+            this.deltaModulationToolStripMenuItem.Text = "Delta Modulation";
+            this.deltaModulationToolStripMenuItem.Click += new System.EventHandler(this.Compress_DeltaModulation_Click);
+
+            this.adaptiveDeltaModulationToolStripMenuItem.Text = "Adaptive Delta Modulation";
+            this.adaptiveDeltaModulationToolStripMenuItem.Click += new System.EventHandler(this.Compress_AdaptiveDeltaModulation_Click);
+
+            // saveCompressedToolStripMenuItem
+            this.saveCompressedToolStripMenuItem.Text = "💾 حفظ الملف المضغوط";
+            this.saveCompressedToolStripMenuItem.Click += new System.EventHandler(this.SaveCompressedFile_Click);
+            this.saveCompressedToolStripMenuItem.Enabled = false; // مفعل فقط بعد الضغط
+
+            // إضافة الـ MenuStrip للـ Controls
+            this.Controls.Add(this.menuStrip1);
+            this.menuStrip1.BringToFront();
 
             buttonsPanel.Controls.AddRange(new Control[] { btnPlay, btnPause, btnStop });
 
@@ -666,7 +739,6 @@ namespace SoundShrink_Desktop
 
         #endregion
 
-
         #region Event Handlers & Cleanup
 
         private void BtnPlay_Click(object sender, EventArgs e) => PlayAudio();
@@ -680,6 +752,369 @@ namespace SoundShrink_Desktop
             _audioService?.CloseReader();
             base.OnFormClosing(e);
         }
+
+        #region Compression Event Handlers
+
+        private float[] LoadAudioSamples(string filePath)
+        {
+            var samples = new List<float>();
+
+            using (var reader = new AudioFileReader(filePath))
+            {
+                float[] buffer = new float[4096];
+                int read;
+
+                while ((read = reader.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    for (int i = 0; i < read; i++)
+                    {
+                        samples.Add(buffer[i]);
+                    }
+                }
+            }
+
+            return samples.ToArray();
+        }
+
+        // ✅ دالة مساعدة لتحويل float[] إلى byte[] (Little-Endian)
+        private byte[] FloatsToBytes(float[] samples)
+        {
+            byte[] bytes = new byte[samples.Length * 4];
+            Buffer.BlockCopy(samples, 0, bytes, 0, bytes.Length);
+            return bytes;
+        }
+
+        private void Compress_NonlinearQuantization_Click(object sender, EventArgs e)
+        {
+            CompressAudio(new NonlinearQuantization());
+        }
+
+        private void Compress_DPCM_Click(object sender, EventArgs e)
+        {
+            CompressAudio(new DPCM());
+        }
+
+        private void Compress_PredictiveCoding_Click(object sender, EventArgs e)
+        {
+            CompressAudio(new PredictiveDifferentialCoding());
+        }
+
+        private void Compress_DeltaModulation_Click(object sender, EventArgs e)
+        {
+            CompressAudio(new DeltaModulation());
+        }
+
+        private void Compress_AdaptiveDeltaModulation_Click(object sender, EventArgs e)
+        {
+            CompressAudio(new AdaptiveDeltaModulation());
+        }
+
+        private void CompressAudio(ICompressionAlgorithm algorithm)
+        {
+            if (_currentFile == null)
+            {
+                MessageBox.Show("الرجاء اختيار ملف صوتي أولاً", "تنبيه",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // تهيئة المراقبة
+            _monitor = new CompressionMonitor();
+            _cancelSource = new System.Threading.CancellationTokenSource();
+            _compressionStartTime = DateTime.Now;
+            _totalBytesToProcess = _currentFile.FileSizeBytes;
+            _bytesProcessed = 0;
+
+            // إنشاء وعرض نموذج المراقبة المتقدم
+            _progressForm = new CompressionProgressForm();
+            _progressForm.CancelRequested += (s, e) => {
+                _cancelSource.Cancel();
+            };
+
+            _progressForm.Show(this);
+            _progressForm.BringToFront();
+
+            try
+            {
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        // ✅ قراءة العينات الصوتية الحقيقية بدلاً من بايتات الملف الخام
+                        float[] samples = LoadAudioSamples(_currentFile.FilePath);
+                        byte[] audioData = FloatsToBytes(samples);
+
+                        // محاكاة التقدم مع التحديث المستمر
+                        int chunkSize = audioData.Length / 100;
+                        for (int i = 0; i <= 100; i++)
+                        {
+                            if (_cancelSource.Token.IsCancellationRequested)
+                            {
+                                this.Invoke(new Action(() =>
+                                {
+                                    _progressForm.SetCancelled();
+                                }));
+
+                                System.Threading.Thread.Sleep(1000);
+
+                                this.Invoke(new Action(() =>
+                                {
+                                    _progressForm.Close();
+                                }));
+
+                                return;
+                            }
+
+                            _bytesProcessed = (long)(i * chunkSize);
+                            UpdateMonitorProgress(i, algorithm);
+                            System.Threading.Thread.Sleep(50);
+                        }
+
+                        // الضغط الفعلي
+                        _compressedData = algorithm.Compress(
+                            audioData,
+                            _currentFile.SampleRate,
+                            _currentFile.BitsPerSample,
+                            _currentFile.Channels);
+
+
+                        byte[] decompressed =
+                            algorithm.Decompress(
+                                _compressedData,
+                                _currentFile.SampleRate,
+                                _currentFile.BitsPerSample,
+                                _currentFile.Channels);
+
+                        this.Invoke(new Action(() =>
+                        {
+                            MessageBox.Show(
+                                $"Original Samples = {audioData.Length / 4}\n" +
+                                $"Decompressed Samples = {decompressed.Length / 4}",
+                                "Decompression Check");
+                        }));
+
+                        _currentAlgorithm = algorithm;
+                        _lastCompressionResult = algorithm.GetCompressionStats();
+
+
+                        // التحديث النهائي
+                        this.Invoke(new Action(() =>
+                        {
+                            _progressForm.Close();
+                            saveCompressedToolStripMenuItem.Enabled = true;
+                            ShowCompressionReport(_lastCompressionResult, algorithm.AlgorithmName);
+                        }));
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // تم الإلغاء بنجاح
+                    }
+                    catch (Exception ex)
+                    {
+                        this.Invoke(new Action(() =>
+                        {
+                            _progressForm?.Close();
+                            MessageBox.Show($"خطأ في الضغط: {ex.Message}", "خطأ",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }));
+                    }
+                }, _cancelSource.Token);
+            }
+            catch (Exception ex)
+            {
+                _progressForm?.Close();
+                MessageBox.Show($"خطأ في بدء الضغط: {ex.Message}", "خطأ",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void UpdateMonitorProgress(int percentage, ICompressionAlgorithm algorithm)
+        {
+            TimeSpan elapsed = DateTime.Now - _compressionStartTime;
+            double speedMBps = (_bytesProcessed / (1024.0 * 1024.0)) / elapsed.TotalSeconds;
+            double remainingBytes = _totalBytesToProcess - _bytesProcessed;
+            double remainingSeconds = speedMBps > 0 ? remainingBytes / (speedMBps * 1024 * 1024) : 0;
+            double estimatedRatio = _totalBytesToProcess > 0 ?
+                (double)_totalBytesToProcess / Math.Max(_bytesProcessed, 1) : 1;
+
+            _monitor.ProgressPercentage = percentage;
+            _monitor.CompressionRatio = estimatedRatio;
+            _monitor.ProcessingSpeedMBps = speedMBps;
+            _monitor.ElapsedTime = elapsed;
+            _monitor.EstimatedRemaining = TimeSpan.FromSeconds(remainingSeconds);
+            _monitor.ProcessedBytes = _bytesProcessed;
+            _monitor.TotalBytes = _totalBytesToProcess;
+
+            _progressForm?.UpdateProgress(_monitor);
+        }
+        private void SetupProgressOverlay()
+        {
+            _progressOverlay = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(30, 30, 35, 230), // شبه شفاف
+                Visible = false,
+                Enabled = false
+            };
+
+            var progressPanel = new Panel
+            {
+                Size = new Size(400, 120),
+                BackColor = Color.FromArgb(45, 45, 50),
+                Location = new Point((this.ClientSize.Width - 400) / 2, (this.ClientSize.Height - 120) / 2),
+                Anchor = AnchorStyles.None
+            };
+            progressPanel.Paint += (s, e) =>
+            {
+                using (Pen pen = new Pen(Color.FromArgb(0, 255, 128), 2))
+                {
+                    e.Graphics.DrawRectangle(pen, 0, 0, progressPanel.Width - 1, progressPanel.Height - 1);
+                }
+            };
+
+            _progressLabel = new Label
+            {
+                Text = "جاري ضغط الملف...",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                AutoSize = false,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Dock = DockStyle.Top,
+                Height = 40
+            };
+
+            _compressionProgressBar = new ProgressBar
+            {
+                Style = ProgressBarStyle.Marquee, // شريط متحرك غير محدد
+                ForeColor = Color.FromArgb(0, 255, 128), // ✅ أخضر
+                Height = 20,
+                Dock = DockStyle.Top,
+                Margin = new Padding(20, 5, 20, 10)
+            };
+
+            var statusLabel = new Label
+            {
+                Text = "يرجى الانتظار...",
+                ForeColor = Color.Gray,
+                Font = new Font("Segoe UI", 9F),
+                AutoSize = false,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Dock = DockStyle.Top,
+                Height = 25
+            };
+
+            progressPanel.Controls.Add(statusLabel);
+            progressPanel.Controls.Add(_compressionProgressBar);
+            progressPanel.Controls.Add(_progressLabel);
+            _progressOverlay.Controls.Add(progressPanel);
+
+            this.Controls.Add(_progressOverlay);
+            _progressOverlay.BringToFront();
+        }
+
+        private void ShowCompressionProgress(string message)
+        {
+            _progressLabel.Text = message;
+            _compressionProgressBar.Style = ProgressBarStyle.Marquee;
+            _progressOverlay.Visible = true;
+            _progressOverlay.Enabled = true;
+            _progressOverlay.BringToFront();
+            this.Refresh();
+            Application.DoEvents(); // تحديث الواجهة فوراً
+        }
+
+        private void HideCompressionProgress()
+        {
+            _progressOverlay.Visible = false;
+            _progressOverlay.Enabled = false;
+            this.Refresh();
+        }
+
+        private void UpdateProgressPercentage(int percentage, string message)
+        {
+            // 🔍 التحقق مما إذا كنا في خيط خلفي
+            if (this.InvokeRequired)
+            {
+                // إذا نعم، نرسل الأمر للخيط الرئيسي لتنفيذه
+                this.Invoke(new Action<int, string>(UpdateProgressPercentage), percentage, message);
+                return;
+            }
+
+            // 🔒 الآن نحن في الخيط الرئيسي، يمكننا تحديث الواجهة بأمان
+            _compressionProgressBar.Style = ProgressBarStyle.Continuous;
+            _compressionProgressBar.Value = percentage;
+            _progressLabel.Text = message;
+
+            // تحديث الواجهة فوراً
+            this.Refresh();
+            Application.DoEvents();
+        }
+
+        private void ShowCompressionReport(CompressionResult result, string algorithmName)
+        {
+            string report = $@"
+خوارزمية الضغط: {algorithmName}
+
+حجم الملف الأصلي: {result.OriginalSize / 1024.0:F2} KB
+حجم الملف المضغوط: {result.CompressedSize / 1024.0:F2} KB
+نسبة الضغط: {result.CompressionRatio:F2}:1
+الوقت المستغرق: {result.ProcessingTime.TotalMilliseconds:F2} ms
+";
+
+            MessageBox.Show(report, "تقرير الضغط",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void SaveCompressedFile_Click(object sender, EventArgs e)
+        {
+            if (_compressedData == null || _currentAlgorithm == null)
+            {
+                MessageBox.Show("لا توجد بيانات مضغوطة للحفظ", "تنبيه",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            SaveFileDialog saveDialog = new SaveFileDialog
+            {
+                Filter = "Compressed Audio Files|*.compressed|All Files|*.*",
+                Title = "حفظ الملف المضغوط",
+                // ✅ صحيح:
+                FileName = $"{Path.GetFileNameWithoutExtension(_currentFile.FilePath)}_compressed.compressed"
+            };
+
+            if (saveDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    // حفظ البيانات المضغوطة
+                    File.WriteAllBytes(saveDialog.FileName, _compressedData);
+
+                    // حفظ معلومات إضافية عن الضغط في ملف منفصل
+                    string infoFile = saveDialog.FileName + ".info";
+                    string info = $@"
+OriginalFile: {_currentFile.FilePath}
+Algorithm: {_currentAlgorithm.AlgorithmName}
+SampleRate: {_currentFile.SampleRate}
+Channels: {_currentFile.Channels}
+BitsPerSample: {_currentFile.BitsPerSample}
+OriginalSize: {_currentFile.FileSizeBytes}
+CompressedSize: {_compressedData.Length}
+CompressionRatio: {_lastCompressionResult.CompressionRatio}
+";
+                    File.WriteAllText(infoFile, info);
+
+                    MessageBox.Show($"تم حفظ الملف المضغوط بنجاح!\n\nالملف: {saveDialog.FileName}\nمعلومات إضافية: {infoFile}",
+                        "تم الحفظ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"خطأ في الحفظ: {ex.Message}", "خطأ",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        #endregion
 
         private void Form1_Load(object sender, EventArgs e) { }
 

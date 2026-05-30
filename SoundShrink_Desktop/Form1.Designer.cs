@@ -169,6 +169,22 @@ namespace SoundShrink_Desktop
             this.ResumeLayout(false);
         }
 
+        // ✅ أضف هذه التعريفات في نهاية partial class Form1 في Form1.Designer.cs:
+
+        private System.Windows.Forms.MenuStrip menuStrip1;
+        private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem changeFileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem removeFileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem compressToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem nonlinearQuantizationToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem dpcmToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem predictiveCodingToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem deltaModulationToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem adaptiveDeltaModulationToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem saveCompressedToolStripMenuItem;
+
+
+
         #endregion
     }
 }
