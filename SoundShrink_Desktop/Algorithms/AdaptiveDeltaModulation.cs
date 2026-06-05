@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using SoundShrink_Desktop.Models;
 
 namespace SoundShrink_Desktop.Algorithms
 {
@@ -15,20 +16,21 @@ namespace SoundShrink_Desktop.Algorithms
 
         public string AlgorithmName => "Adaptive Delta Modulation (ADM)";
 
-        /// <param name="initialStepSize">الخطوة الابتدائية للمكامل. الافتراضي 0.05 يناسب الإشارات المطبعة [-1, 1]</param>
-        /// <param name="stepSizeMultiplier">معامل التضخيم/التخفيض عند تغير اتجاه البت. الافتراضي 1.5</param>
-        /// <param name="minStepSize">الحد الأدنى للخطوة لمنع الاستقرار الزائد (Granular Noise).</param>
-        /// <param name="maxStepSize">الحد الأقصى للخطوة لمنع التشويه (Slope Overload).</param>
-        public AdaptiveDeltaModulation(
-            double initialStepSize = 0.05,
-            double stepSizeMultiplier = 1.5,
-            double minStepSize = 0.005,
-            double maxStepSize = 0.5)
+        /// <summary>
+        /// Constructor يقبل إعدادات الضغط من واجهة المستخدم
+        /// </summary>
+        /// <param name="settings">إعدادات الضغط (اختياري - يستخدم القيم الافتراضية إذا لم يتم تمريرها)</param>
+        public AdaptiveDeltaModulation(CompressionSettings settings = null)
         {
-            _initialStepSize = initialStepSize;
-            _stepSizeMultiplier = stepSizeMultiplier;
-            _minStepSize = minStepSize;
-            _maxStepSize = maxStepSize;
+            // استخدام الإعدادات الممررة أو القيم الافتراضية
+            settings = settings ?? new CompressionSettings();
+
+            _initialStepSize = settings.InitialStepSize;
+            _stepSizeMultiplier = settings.StepSizeMultiplier;
+
+            // قيم ثابتة للحماية من التشويه والضوضاء
+            _minStepSize = 0.005;  // الحد الأدنى للخطوة
+            _maxStepSize = 0.5;    // الحد الأقصى للخطوة
         }
 
         public byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels)
@@ -54,14 +56,14 @@ namespace SoundShrink_Desktop.Algorithms
                 // تحديث المكامل (Integrator)
                 predicted += currentBit ? stepSize : -stepSize;
 
-                // 🔁 آلية التكيف: إذا استمر الاتجاه → نكبر الخطوة، إذا عكس الاتجاه → نصغرها
+                //  آلية التكيف: إذا استمر الاتجاه → نكبر الخطوة، إذا عكس الاتجاه → نصغرها
                 if (i > 0)
                 {
                     stepSize = currentBit == previousBit
                         ? stepSize * _stepSizeMultiplier
                         : stepSize / _stepSizeMultiplier;
 
-                    // 🛡️ حماية من القيم المتطرفة (Slope Overload & Granular Noise)
+                    //  حماية من القيم المتطرفة (Slope Overload & Granular Noise)
                     stepSize = Math.Max(_minStepSize, Math.Min(stepSize, _maxStepSize));
                 }
 
@@ -70,13 +72,13 @@ namespace SoundShrink_Desktop.Algorithms
 
             // 3️⃣ تعبئة البتات في بايتات (Bit Packing)
             int headerSize = 4;
-            int dataSize = (bits.Count + 7) / 8; // تقريب للأعلى
+            int dataSize = (bits.Count + 7) / 8;
             byte[] compressed = new byte[headerSize + dataSize];
 
-            // كتابة عدد العينات في الـ Header لضمان فك ضغط متطابق
+            // كتابة عدد العينات في الـ Header
             Buffer.BlockCopy(BitConverter.GetBytes(samples.Length), 0, compressed, 0, 4);
 
-            // تعبئة البتات بترتيب MSB-first داخل كل بايت
+            // تعبئة البتات بترتيب MSB-first
             for (int i = 0; i < bits.Count; i++)
             {
                 if (bits[i])
@@ -103,7 +105,7 @@ namespace SoundShrink_Desktop.Algorithms
             int sampleCount = BitConverter.ToInt32(compressedData, 0);
             int headerSize = 4;
 
-            // 2️⃣ إعادة بناء الإشارة بنفس المنطق التكيفي المستخدم في الضغط
+            // 2️⃣ إعادة بناء الإشارة
             float[] reconstructed = new float[sampleCount];
             double current = 0.0;
             double stepSize = _initialStepSize;
@@ -111,14 +113,14 @@ namespace SoundShrink_Desktop.Algorithms
 
             for (int i = 0; i < sampleCount; i++)
             {
-                // استخراج البت المقابل
+                // استخراج البت
                 bool bit = (compressedData[headerSize + (i / 8)] & (1 << (7 - (i % 8)))) != 0;
 
                 // تطبيق خطوة المكامل
                 current += bit ? stepSize : -stepSize;
                 reconstructed[i] = (float)current;
 
-                // 🔁 تطبيق نفس آلية التكيف بالضبط
+                // 🔁 تطبيق نفس آلية التكيف
                 if (previousBit.HasValue)
                 {
                     stepSize = bit == previousBit.Value
@@ -131,7 +133,7 @@ namespace SoundShrink_Desktop.Algorithms
                 previousBit = bit;
             }
 
-            // 3️ تحويل العينات المعاد بناؤها إلى Byte[] متوافق مع واجهة المشروع
+            // 3️⃣ تحويل إلى Byte[]
             byte[] output = new byte[reconstructed.Length * 4];
             Buffer.BlockCopy(reconstructed, 0, output, 0, output.Length);
 
@@ -139,6 +141,7 @@ namespace SoundShrink_Desktop.Algorithms
         }
 
         public CompressionResult GetCompressionStats() => _result;
+
         private float[] BytesToFloats(byte[] bytes)
         {
             int sampleCount = bytes.Length / 4;

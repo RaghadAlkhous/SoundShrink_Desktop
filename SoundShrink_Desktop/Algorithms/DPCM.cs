@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using SoundShrink_Desktop.Models;
 
 namespace SoundShrink_Desktop.Algorithms
 {
@@ -12,13 +13,36 @@ namespace SoundShrink_Desktop.Algorithms
     {
         private CompressionResult _result;
         private readonly float _quantStep;
+        private readonly int _bitsPerSample;
 
-        public string AlgorithmName => "Differential PCM (DPCM)";
+        public string AlgorithmName => $"Differential PCM (DPCM) - {_bitsPerSample}-bit";
 
-        /// <param name="quantStep">حجم خطوة التكميم للفروقات. القيمة الافتراضية 0.01 توازن بين الدقة وحجم البيانات.</param>
-        public DPCM(float quantStep = 0.01f)
+        /// <summary>
+        /// Constructor يقبل إعدادات الضغط من واجهة المستخدم
+        /// </summary>
+        /// <param name="settings">إعدادات الضغط (اختياري - يستخدم القيم الافتراضية إذا لم يتم تمريرها)</param>
+        public DPCM(CompressionSettings settings = null)
+        {
+            // استخدام الإعدادات الممررة أو القيم الافتراضية
+            settings = settings ?? new CompressionSettings();
+            _bitsPerSample = settings.BitsPerSample;
+
+            // حساب خطوة التكميم بناءً على عدد البتات
+            // النطاق الكلي للإشارة = 2.0 (من -1 إلى +1)
+            // عدد المستويات = 2^BitsPerSample
+            // خطوة التكميم = النطاق / عدد المستويات
+            int levels = (int)Math.Pow(2, _bitsPerSample);
+            _quantStep = 2.0f / levels;
+        }
+
+        /// <summary>
+        /// Constructor قديم يقبل خطوة التكميم مباشرة (للتوافق مع الكود القديم)
+        /// </summary>
+        /// <param name="quantStep">حجم خطوة التكميم</param>
+        public DPCM(float quantStep)
         {
             _quantStep = quantStep;
+            _bitsPerSample = 16; // افتراضي
         }
 
         public byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels)
@@ -40,7 +64,7 @@ namespace SoundShrink_Desktop.Algorithms
             for (int i = 1; i < samples.Length; i++)
             {
                 float difference = samples[i] - previousSample;
-                // تكميم الفرق إلى 16-bit باستخدام خطوة التكميم الصريحة
+                // تكميم الفرق باستخدام خطوة التكميم المحسوبة
                 short quantizedDiff = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, (int)(difference / _quantStep)));
                 output.AddRange(BitConverter.GetBytes(quantizedDiff));
                 previousSample = samples[i];

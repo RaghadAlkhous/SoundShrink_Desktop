@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using SoundShrink_Desktop.Models;
 
 namespace SoundShrink_Desktop.Algorithms
 {
@@ -16,10 +17,15 @@ namespace SoundShrink_Desktop.Algorithms
 
         public string AlgorithmName => "Delta Modulation (DM)";
 
-        /// <param name="stepSize">حجم الخطوة الثابتة للمكامل. القيمة الافتراضية 0.05 مناسبة للإشارات الطبيعية [-1, 1]</param>
-        public DeltaModulation(double stepSize = 0.05)
+        /// <summary>
+        /// Constructor يقبل إعدادات الضغط من واجهة المستخدم
+        /// </summary>
+        /// <param name="settings">إعدادات الضغط (اختياري - يستخدم القيم الافتراضية إذا لم يتم تمريرها)</param>
+        public DeltaModulation(CompressionSettings settings = null)
         {
-            _stepSize = stepSize;
+            // استخدام الإعدادات الممررة أو القيم الافتراضية
+            settings = settings ?? new CompressionSettings();
+            _stepSize = settings.StepSize;
         }
 
         public byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels)
@@ -27,10 +33,10 @@ namespace SoundShrink_Desktop.Algorithms
             var startTime = DateTime.Now;
             long originalSize = audioData.Length;
 
-            // 1️ تحويل البايتات الخام إلى عينات Float حقيقية
+            // 1️⃣ تحويل البايتات الخام إلى عينات Float حقيقية
             float[] samples = BytesToFloats(audioData);
 
-            // 2️ إنشاء تيار البتات (1 بت لكل عينة)
+            // 2️⃣ إنشاء تيار البتات (1 بت لكل عينة)
             var bits = new List<bool>(samples.Length);
             double predicted = 0.0;
 
@@ -77,7 +83,7 @@ namespace SoundShrink_Desktop.Algorithms
 
         public byte[] Decompress(byte[] compressedData, int sampleRate, int bitsPerSample, int channels)
         {
-            // 1️ قراءة عدد العينات من الـ Header
+            // 1️⃣ قراءة عدد العينات من الـ Header
             int sampleCount = BitConverter.ToInt32(compressedData, 0);
             int headerSize = 4;
 

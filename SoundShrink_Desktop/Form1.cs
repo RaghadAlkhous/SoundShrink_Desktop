@@ -33,6 +33,7 @@ namespace SoundShrink_Desktop
         private ProgressBar _compressionProgressBar;
         private Label _progressLabel;
 
+        private string _originalFilePath; // مسار النسخة الأصلية
         // متغيرات مراقبة الضغط المتقدمة
         private CompressionProgressForm _progressForm;
         private CompressionMonitor _monitor;
@@ -40,6 +41,10 @@ namespace SoundShrink_Desktop
         private DateTime _compressionStartTime;
         private long _totalBytesToProcess;
         private long _bytesProcessed;
+
+        // متغيرات فك الضغط
+        private string _decompressedTempFile; // مسار ملف WAV المؤقت
+        private bool _isDecompressedMode = false; // هل نحن في وضع فك الضغط؟
         public Form1()
         {
             InitializeComponent();
@@ -52,6 +57,9 @@ namespace SoundShrink_Desktop
             EnableDragDrop();
 
             SetupProgressOverlay();
+
+            UpdateMenuState(false);
+            saveCompressedToolStripMenuItem.Enabled = false;
         }
 
         private void SetupUI()
@@ -146,15 +154,22 @@ namespace SoundShrink_Desktop
             this.menuStrip1.ForeColor = Color.White;
             this.menuStrip1.Font = new Font("Segoe UI", 9F);
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-    this.fileToolStripMenuItem});
+            this.fileToolStripMenuItem});
 
             // fileToolStripMenuItem
             this.fileToolStripMenuItem.Text = "ملف";
+            // تعريف عنصر فك الضغط
+            this.decompressToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.decompressToolStripMenuItem.Text = "📂 فك ضغط ملف";
+            this.decompressToolStripMenuItem.Click += new System.EventHandler(this.DecompressFile_Click);
+
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-    this.changeFileToolStripMenuItem,
-    this.removeFileToolStripMenuItem,
-    this.compressToolStripMenuItem,
-    this.saveCompressedToolStripMenuItem});
+            this.changeFileToolStripMenuItem,
+            this.removeFileToolStripMenuItem,
+            new ToolStripSeparator(), // فاصل
+            this.compressToolStripMenuItem,
+            this.decompressToolStripMenuItem, // ✅ جديد
+            this.saveCompressedToolStripMenuItem});
 
             // changeFileToolStripMenuItem
             this.changeFileToolStripMenuItem.Text = "🔄 تغيير الملف";
@@ -167,11 +182,11 @@ namespace SoundShrink_Desktop
             // compressToolStripMenuItem (قائمة فرعية للخوارزميات)
             this.compressToolStripMenuItem.Text = "🗜️ ضغط الملف";
             this.compressToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-    this.nonlinearQuantizationToolStripMenuItem,
-    this.dpcmToolStripMenuItem,
-    this.predictiveCodingToolStripMenuItem,
-    this.deltaModulationToolStripMenuItem,
-    this.adaptiveDeltaModulationToolStripMenuItem});
+            this.nonlinearQuantizationToolStripMenuItem,
+            this.dpcmToolStripMenuItem,
+            this.predictiveCodingToolStripMenuItem,
+            this.deltaModulationToolStripMenuItem,
+            this.adaptiveDeltaModulationToolStripMenuItem});
 
             // الخوارزميات الخمس
             this.nonlinearQuantizationToolStripMenuItem.Text = "Nonlinear Quantization";
@@ -197,6 +212,8 @@ namespace SoundShrink_Desktop
             // إضافة الـ MenuStrip للـ Controls
             this.Controls.Add(this.menuStrip1);
             this.menuStrip1.BringToFront();
+
+
 
             buttonsPanel.Controls.AddRange(new Control[] { btnPlay, btnPause, btnStop });
 
@@ -307,6 +324,8 @@ namespace SoundShrink_Desktop
                 HandleFileLoad(dialog.FileName);
         }
 
+
+
         private void HandleFileLoad(string filePath)
         {
             try
@@ -315,6 +334,13 @@ namespace SoundShrink_Desktop
 
                 if (_currentFile != null)
                     UnloadCurrentFile();
+
+                // ✅ حفظ نسخة من الملف الأصلي في مكان مؤقت
+                _originalFilePath = Path.Combine(
+                    Path.GetTempPath(),
+                    $"SoundShrink_Original_{DateTime.Now:yyyyMMdd_HHmmss}{Path.GetExtension(filePath)}"
+                );
+                File.Copy(filePath, _originalFilePath, true);
 
                 _currentFile = _audioService.LoadAudio(filePath);
                 UpdateInfoLabels();
@@ -328,6 +354,12 @@ namespace SoundShrink_Desktop
                 progressBar.Maximum = (int)_currentFile.Duration.TotalSeconds;
                 lblTotalTime.Text = FormatTime(_currentFile.Duration);
                 this.Text = $"SoundShrink Pro - {_currentFile.FileName}";
+
+                // تفعيل عناصر القائمة بعد تحميل الملف
+                UpdateMenuState(true);
+
+                // إعادة تعيين وضع فك الضغط
+                _isDecompressedMode = false;
             }
             catch (Exception ex)
             {
@@ -338,7 +370,6 @@ namespace SoundShrink_Desktop
                 Cursor = Cursors.Default;
             }
         }
-
         private void UpdateInfoLabels()
         {
             SetLabel("lblFileName", _currentFile.FileName);
@@ -365,6 +396,22 @@ namespace SoundShrink_Desktop
 
         private string FormatTime(TimeSpan time) => $"{time.Minutes:D2}:{time.Seconds:D2}";
 
+        private void UpdateMenuState(bool hasFile)
+        {
+            // "تغيير الملف" دائماً مفعل
+            changeFileToolStripMenuItem.Enabled = true;
+
+            // العناصر التي تتطلب ملفاً محملاً
+            removeFileToolStripMenuItem.Enabled = hasFile;
+            compressToolStripMenuItem.Enabled = hasFile;
+
+            // الخوارزميات الفرعية
+            nonlinearQuantizationToolStripMenuItem.Enabled = hasFile;
+            dpcmToolStripMenuItem.Enabled = hasFile;
+            predictiveCodingToolStripMenuItem.Enabled = hasFile;
+            deltaModulationToolStripMenuItem.Enabled = hasFile;
+            adaptiveDeltaModulationToolStripMenuItem.Enabled = hasFile;
+        }
         #endregion
 
         #region File Management
@@ -408,6 +455,17 @@ namespace SoundShrink_Desktop
             btnPause.Enabled = false;
             btnPause.Text = "⏸ إيقاف مؤقت";
             btnStop.Enabled = false;
+
+            // ✅ تعطيل عناصر القائمة عند إزالة الملف
+            UpdateMenuState(false);
+
+            // ✅ أيضاً تعطيل زر الحفظ
+            saveCompressedToolStripMenuItem.Enabled = false;
+            _compressedData = null;
+
+            // ✅ إعادة تعيين وضع فك الضغط
+            _isDecompressedMode = false;
+
         }
 
         private void ChangeFile_Click(object sender, EventArgs e)
@@ -417,7 +475,7 @@ namespace SoundShrink_Desktop
                 if (MessageBox.Show("هل تريد إيقاف التشغيل وتغيير الملف؟", "تأكيد", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                     return;
             }
-            UnloadCurrentFile();
+            UnloadCurrentFile(); // هذا يعطل saveCompressedToolStripMenuItem تلقائياً
             OpenFileBrowser();
         }
 
@@ -428,9 +486,8 @@ namespace SoundShrink_Desktop
                 if (MessageBox.Show("هل تريد إيقاف التشغيل وإزالة الملف؟", "تأكيد", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                     return;
             }
-            UnloadCurrentFile();
+            UnloadCurrentFile(); // هذا يعطل saveCompressedToolStripMenuItem تلقائياً
         }
-
         #endregion
 
         #region Audio Playback
@@ -750,8 +807,13 @@ namespace SoundShrink_Desktop
             UnloadCurrentFile();
             _progressTimer?.Dispose();
             _audioService?.CloseReader();
+
+            // ✅ تنظيف الملفات المؤقتة (النسخة الأصلية + ملف فك الضغط)
+            CleanupTempFiles();
+
             base.OnFormClosing(e);
         }
+
 
         #region Compression Event Handlers
 
@@ -784,31 +846,76 @@ namespace SoundShrink_Desktop
             return bytes;
         }
 
+        #region Compression Event Handlers
+
         private void Compress_NonlinearQuantization_Click(object sender, EventArgs e)
         {
-            CompressAudio(new NonlinearQuantization());
+            // 1. فتح نافذة الإعدادات
+            var settingsForm = new CompressionSettingsForm(AlgorithmType.NonlinearQuantization);
+
+            // 2. عرض النافذة وانتظار النتيجة
+            if (settingsForm.ShowDialog() == DialogResult.OK)
+            {
+                // 3. الحصول على الإعدادات
+                var settings = settingsForm.GetSettings();
+
+                // 4. إنشاء الخوارزمية مع الإعدادات
+                var algorithm = new NonlinearQuantization(settings);
+
+                // 5. بدء الضغط
+                CompressAudio(algorithm);
+            }
         }
 
         private void Compress_DPCM_Click(object sender, EventArgs e)
         {
-            CompressAudio(new DPCM());
+            var settingsForm = new CompressionSettingsForm(AlgorithmType.DPCM);
+
+            if (settingsForm.ShowDialog() == DialogResult.OK)
+            {
+                var settings = settingsForm.GetSettings();
+                var algorithm = new DPCM(settings);
+                CompressAudio(algorithm);
+            }
         }
 
         private void Compress_PredictiveCoding_Click(object sender, EventArgs e)
         {
-            CompressAudio(new PredictiveDifferentialCoding());
+            var settingsForm = new CompressionSettingsForm(AlgorithmType.PredictiveDifferentialCoding);
+
+            if (settingsForm.ShowDialog() == DialogResult.OK)
+            {
+                var settings = settingsForm.GetSettings();
+                var algorithm = new PredictiveDifferentialCoding(settings);
+                CompressAudio(algorithm);
+            }
         }
 
         private void Compress_DeltaModulation_Click(object sender, EventArgs e)
         {
-            CompressAudio(new DeltaModulation());
+            var settingsForm = new CompressionSettingsForm(AlgorithmType.DeltaModulation);
+
+            if (settingsForm.ShowDialog() == DialogResult.OK)
+            {
+                var settings = settingsForm.GetSettings();
+                var algorithm = new DeltaModulation(settings);
+                CompressAudio(algorithm);
+            }
         }
 
         private void Compress_AdaptiveDeltaModulation_Click(object sender, EventArgs e)
         {
-            CompressAudio(new AdaptiveDeltaModulation());
+            var settingsForm = new CompressionSettingsForm(AlgorithmType.AdaptiveDeltaModulation);
+
+            if (settingsForm.ShowDialog() == DialogResult.OK)
+            {
+                var settings = settingsForm.GetSettings();
+                var algorithm = new AdaptiveDeltaModulation(settings);
+                CompressAudio(algorithm);
+            }
         }
 
+        #endregion
         private void CompressAudio(ICompressionAlgorithm algorithm)
         {
             if (_currentFile == null)
@@ -840,11 +947,11 @@ namespace SoundShrink_Desktop
                 {
                     try
                     {
-                        // ✅ قراءة العينات الصوتية الحقيقية بدلاً من بايتات الملف الخام
+                        // ✅ قراءة العينات الصوتية
                         float[] samples = LoadAudioSamples(_currentFile.FilePath);
                         byte[] audioData = FloatsToBytes(samples);
 
-                        // محاكاة التقدم مع التحديث المستمر
+                        // محاكاة التقدم
                         int chunkSize = audioData.Length / 100;
                         for (int i = 0; i <= 100; i++)
                         {
@@ -857,9 +964,12 @@ namespace SoundShrink_Desktop
 
                                 System.Threading.Thread.Sleep(1000);
 
+                                // ✅ عند الإلغاء: لا تعرض التقرير
                                 this.Invoke(new Action(() =>
                                 {
                                     _progressForm.Close();
+                                    MessageBox.Show("تم إلغاء عملية الضغط", "إلغاء",
+                                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                                 }));
 
                                 return;
@@ -877,13 +987,11 @@ namespace SoundShrink_Desktop
                             _currentFile.BitsPerSample,
                             _currentFile.Channels);
 
-
-                        byte[] decompressed =
-                            algorithm.Decompress(
-                                _compressedData,
-                                _currentFile.SampleRate,
-                                _currentFile.BitsPerSample,
-                                _currentFile.Channels);
+                        byte[] decompressed = algorithm.Decompress(
+                            _compressedData,
+                            _currentFile.SampleRate,
+                            _currentFile.BitsPerSample,
+                            _currentFile.Channels);
 
                         this.Invoke(new Action(() =>
                         {
@@ -896,8 +1004,7 @@ namespace SoundShrink_Desktop
                         _currentAlgorithm = algorithm;
                         _lastCompressionResult = algorithm.GetCompressionStats();
 
-
-                        // التحديث النهائي
+                        // ✅ التحديث النهائي (هنا _lastCompressionResult ليس null)
                         this.Invoke(new Action(() =>
                         {
                             _progressForm.Close();
@@ -918,6 +1025,7 @@ namespace SoundShrink_Desktop
                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }));
                     }
+
                 }, _cancelSource.Token);
             }
             catch (Exception ex)
@@ -1012,24 +1120,6 @@ namespace SoundShrink_Desktop
             _progressOverlay.BringToFront();
         }
 
-        private void ShowCompressionProgress(string message)
-        {
-            _progressLabel.Text = message;
-            _compressionProgressBar.Style = ProgressBarStyle.Marquee;
-            _progressOverlay.Visible = true;
-            _progressOverlay.Enabled = true;
-            _progressOverlay.BringToFront();
-            this.Refresh();
-            Application.DoEvents(); // تحديث الواجهة فوراً
-        }
-
-        private void HideCompressionProgress()
-        {
-            _progressOverlay.Visible = false;
-            _progressOverlay.Enabled = false;
-            this.Refresh();
-        }
-
         private void UpdateProgressPercentage(int percentage, string message)
         {
             // 🔍 التحقق مما إذا كنا في خيط خلفي
@@ -1078,7 +1168,6 @@ namespace SoundShrink_Desktop
             {
                 Filter = "Compressed Audio Files|*.compressed|All Files|*.*",
                 Title = "حفظ الملف المضغوط",
-                // ✅ صحيح:
                 FileName = $"{Path.GetFileNameWithoutExtension(_currentFile.FilePath)}_compressed.compressed"
             };
 
@@ -1089,18 +1178,20 @@ namespace SoundShrink_Desktop
                     // حفظ البيانات المضغوطة
                     File.WriteAllBytes(saveDialog.FileName, _compressedData);
 
-                    // حفظ معلومات إضافية عن الضغط في ملف منفصل
+                    // ✅ حفظ معلومات إضافية عن الضغط في ملف منفصل
                     string infoFile = saveDialog.FileName + ".info";
-                    string info = $@"
-OriginalFile: {_currentFile.FilePath}
+                    string info = $@"OriginalFile: {_currentFile.FilePath}
 Algorithm: {_currentAlgorithm.AlgorithmName}
 SampleRate: {_currentFile.SampleRate}
 Channels: {_currentFile.Channels}
 BitsPerSample: {_currentFile.BitsPerSample}
 OriginalSize: {_currentFile.FileSizeBytes}
 CompressedSize: {_compressedData.Length}
-CompressionRatio: {_lastCompressionResult.CompressionRatio}
-";
+CompressionRatio: {_lastCompressionResult.CompressionRatio}";
+
+                    // ✅ إضافة إعدادات الخوارزمية حسب النوع
+                    info += GetAlgorithmSettingsInfo();
+
                     File.WriteAllText(infoFile, info);
 
                     MessageBox.Show($"تم حفظ الملف المضغوط بنجاح!\n\nالملف: {saveDialog.FileName}\nمعلومات إضافية: {infoFile}",
@@ -1114,10 +1205,482 @@ CompressionRatio: {_lastCompressionResult.CompressionRatio}
             }
         }
 
+        /// <summary>
+        /// استخراج إعدادات الخوارزمية الحالية لحفظها في ملف .info
+        /// </summary>
+        private string GetAlgorithmSettingsInfo()
+        {
+            string settings = "";
+
+            if (_currentAlgorithm is NonlinearQuantization nq)
+            {
+                // استخدام reflection للحصول على القيمة الخاصة
+                var field = typeof(NonlinearQuantization).GetField("_quantizationLevels",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (field != null)
+                {
+                    int levels = (int)field.GetValue(nq);
+                    settings = $"\nQuantizationLevels: {levels}";
+                }
+            }
+            else if (_currentAlgorithm is DPCM dpcm)
+            {
+                var field = typeof(DPCM).GetField("_quantStep",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (field != null)
+                {
+                    float step = (float)field.GetValue(dpcm);
+                    settings = $"\nQuantStep: {step}";
+                }
+            }
+            else if (_currentAlgorithm is PredictiveDifferentialCoding pdc)
+            {
+                var field = typeof(PredictiveDifferentialCoding).GetField("_predictionCoeff",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (field != null)
+                {
+                    double coeff = (double)field.GetValue(pdc);
+                    settings = $"\nPredictionCoefficient: {coeff}";
+                }
+            }
+            else if (_currentAlgorithm is DeltaModulation dm)
+            {
+                var field = typeof(DeltaModulation).GetField("_stepSize",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (field != null)
+                {
+                    double step = (double)field.GetValue(dm);
+                    settings = $"\nStepSize: {step}";
+                }
+            }
+            else if (_currentAlgorithm is AdaptiveDeltaModulation adm)
+            {
+                var field1 = typeof(AdaptiveDeltaModulation).GetField("_initialStepSize",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var field2 = typeof(AdaptiveDeltaModulation).GetField("_stepSizeMultiplier",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                if (field1 != null && field2 != null)
+                {
+                    double initialStep = (double)field1.GetValue(adm);
+                    double multiplier = (double)field2.GetValue(adm);
+                    settings = $"\nInitialStepSize: {initialStep}\nStepSizeMultiplier: {multiplier}";
+                }
+            }
+
+            return settings;
+        }
         #endregion
 
         private void Form1_Load(object sender, EventArgs e) { }
 
+        #region Decompression
+        /// <summary>
+        /// دالة فك ضغط الملف - مع خيار استعادة النسخة الأصلية
+        /// </summary>
+        /// <summary>
+        /// دالة فك ضغط الملف - مع خيار استعادة النسخة الأصلية
+        /// </summary>
+        private void DecompressFile_Click(object sender, EventArgs e)
+        {
+            var openDialog = new OpenFileDialog
+            {
+                Filter = "Compressed Audio Files|*.compressed|All Files|*.*",
+                Title = "اختر ملف مضغوط لفك ضغطه"
+            };
+
+            if (openDialog.ShowDialog() != DialogResult.OK)
+                return;
+
+            try
+            {
+                Cursor = Cursors.WaitCursor;
+
+                string compressedFile = openDialog.FileName;
+                string infoFile = compressedFile + ".info";
+
+                // 1️ قراءة ملف المعلومات
+                if (!File.Exists(infoFile))
+                {
+                    MessageBox.Show(
+                        "لم يتم العثور على ملف المعلومات (.info) المرتبط.\n" +
+                        "تأكد من وجود الملف بنفس اسم الملف المضغوط مع اللاحقة .info",
+                        "خطأ",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
+                    return;
+                }
+
+                var info = ReadInfoFile(infoFile);
+
+                // 2️⃣ استخراج المعلومات
+                string algorithmName = info["Algorithm"];
+                int sampleRate = int.Parse(info["SampleRate"]);
+                int channels = int.Parse(info["Channels"]);
+                int bitsPerSample = int.Parse(info["BitsPerSample"]);
+
+                // 3️⃣ عرض نافذة اختيار الإعدادات
+                var optionsForm = new DecompressionOptionsForm(algorithmName);
+                if (optionsForm.ShowDialog() != DialogResult.OK)
+                    return;
+
+                // 4️⃣ معالجة الخيار المختار
+                ICompressionAlgorithm algorithm;
+                string modeDescription;
+
+                if (optionsForm.UseOriginalSettings)
+                {
+                    // ✅ الخيار 1: استخدام الإعدادات الأصلية (من ملف .info)
+                    var originalSettings = ReadAlgorithmSettings(info);
+                    algorithm = CreateAlgorithmWithSettings(algorithmName, originalSettings);
+                    modeDescription = "بالإعدادات الأصلية";
+                }
+                else
+                {
+                    // ✅ الخيار 2: استخدام الإعدادات الافتراضية (بدون تعديل)
+                    var confirmResult = MessageBox.Show(
+                        $"⚠️ سيتم فك الضغط بالإعدادات الافتراضية للخوارزمية\n" +
+                        $"(قد تختلف عن الإعدادات الأصلية وتؤثر على الجودة)\n\n" +
+                        $"هل تريد المتابعة؟",
+                        "فك ضغط الملف",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question
+                    );
+
+                    if (confirmResult != DialogResult.Yes)
+                        return;
+
+                    algorithm = CreateAlgorithmByName(algorithmName);
+                    modeDescription = "بالإعدادات الافتراضية";
+                }
+
+                // 5️⃣ قراءة البيانات المضغوطة
+                byte[] compressedData = File.ReadAllBytes(compressedFile);
+
+                // 6️⃣ فك الضغط
+                byte[] decompressedData = algorithm.Decompress(
+                    compressedData,
+                    sampleRate,
+                    bitsPerSample,
+                    channels
+                );
+
+                // 7️⃣ ✅ تحويل البيانات المفكوكة إلى float[] بشكل صحيح
+                // معظم خوارزميات الضغط تعيد بيانات بصيغة 16-bit PCM (short) وليس float
+                float[] samples = ConvertBytesToFloatArray(decompressedData, bitsPerSample);
+
+                // 8️⃣ حفظ كملف WAV مؤقت (مع التطبيع)
+                string tempWavPath = SaveAsTempWav(samples, sampleRate, channels, bitsPerSample);
+                _decompressedTempFile = tempWavPath;
+                _isDecompressedMode = true;
+
+                // 9️⃣ تحميل الملف للتشغيل
+                if (_currentFile != null)
+                    UnloadCurrentFile();
+
+                _currentFile = _audioService.LoadAudio(tempWavPath);
+                UpdateInfoLabels();
+                _analyzer.Clear();
+
+                wavePictureBox.Visible = true;
+                spectrumPictureBox.Visible = true;
+                controlsPanel.Visible = true;
+                dropPanel.Visible = false;
+
+                progressBar.Maximum = (int)_currentFile.Duration.TotalSeconds;
+                lblTotalTime.Text = FormatTime(_currentFile.Duration);
+                this.Text = $"SoundShrink Pro - [مفكوك {modeDescription}] {_currentFile.FileName}";
+
+                UpdateMenuState(true);
+
+                // 🔟 عرض رسالة النجاح
+                MessageBox.Show(
+                    $"✅ تم فك الضغط بنجاح ({modeDescription})!\n\n" +
+                    $"حجم الملف الأصلي (من .info): {long.Parse(info["OriginalSize"]) / 1024.0:F2} KB\n" +
+                    $"حجم الملف المضغوط: {compressedData.Length / 1024.0:F2} KB\n" +
+                    $"حجم الملف بعد فك الضغط: {decompressedData.Length / 1024.0:F2} KB\n" +
+                    $"نسبة الضغط الأصلية: {info["CompressionRatio"]}\n\n" +
+                    $"يمكنك الآن تشغيل الملف باستخدام أزرار التحكم.",
+                    "تم فك الضغط",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"خطأ في فك الضغط: {ex.Message}\n\n{ex.StackTrace}", "خطأ",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+            }
+        }
+
+        /// <summary>
+        /// تحويل البيانات المفكوكة من byte[] إلى float[] بشكل صحيح
+        /// يدعم 16-bit و 8-bit PCM
+        /// </summary>
+        private float[] ConvertBytesToFloatArray(byte[] data, int bitsPerSample)
+        {
+            if (data == null || data.Length == 0)
+                return new float[0];
+
+            float[] samples;
+
+            if (bitsPerSample == 16)
+            {
+                // ✅ بيانات 16-bit PCM (short)
+                int sampleCount = data.Length / 2;
+                short[] shortSamples = new short[sampleCount];
+                Buffer.BlockCopy(data, 0, shortSamples, 0, data.Length);
+
+                samples = new float[sampleCount];
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    // تحويل short إلى float وتطبيع بين -1.0 و 1.0
+                    samples[i] = shortSamples[i] / 32768f;
+                }
+            }
+            else if (bitsPerSample == 8)
+            {
+                // ✅ بيانات 8-bit PCM (unsigned byte)
+                samples = new float[data.Length];
+                for (int i = 0; i < data.Length; i++)
+                {
+                    // تحويل unsigned byte (0-255) إلى float (-1.0 إلى 1.0)
+                    samples[i] = (data[i] - 128) / 128f;
+                }
+            }
+            else if (bitsPerSample == 32)
+            {
+                // ✅ بيانات 32-bit float (نادرة في خوارزميات الضغط البسيطة)
+                samples = new float[data.Length / 4];
+                Buffer.BlockCopy(data, 0, samples, 0, data.Length);
+            }
+            else
+            {
+                throw new NotSupportedException($"صيغة {bitsPerSample}-bit غير مدعومة");
+            }
+
+            return samples;
+        }
+      
+
+        /// <summary>
+        /// تنظيف الملفات المؤقتة عند إغلاق البرنامج
+        /// </summary>
+        private void CleanupTempFiles()
+        {
+            try
+            {
+                // حذف النسخة الأصلية المحفوظة
+                if (!string.IsNullOrEmpty(_originalFilePath) && File.Exists(_originalFilePath))
+                {
+                    File.Delete(_originalFilePath);
+                    _originalFilePath = null;
+                }
+
+                // حذف ملف WAV المؤقت بعد فك الضغط
+                if (!string.IsNullOrEmpty(_decompressedTempFile) && File.Exists(_decompressedTempFile))
+                {
+                    File.Delete(_decompressedTempFile);
+                    _decompressedTempFile = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cleaning temp files: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// قراءة ملف .info واستخراج معلومات الضغط
+        /// </summary>
+        private Dictionary<string, string> ReadInfoFile(string infoFilePath)
+        {
+            var info = new Dictionary<string, string>();
+
+            if (!File.Exists(infoFilePath))
+                throw new FileNotFoundException("ملف المعلومات (.info) غير موجود", infoFilePath);
+
+            foreach (var line in File.ReadAllLines(infoFilePath))
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                var parts = line.Split(new[] { ':' }, 2);
+                if (parts.Length == 2)
+                {
+                    string key = parts[0].Trim();
+                    string value = parts[1].Trim();
+                    info[key] = value;
+                }
+            }
+
+            return info;
+        }
+
+        /// <summary>
+        /// قراءة إعدادات الخوارزمية من ملف .info
+        /// </summary>
+        private CompressionSettings ReadAlgorithmSettings(Dictionary<string, string> info)
+        {
+            var settings = new CompressionSettings();
+
+            try
+            {
+                // قراءة الإعدادات حسب نوع الخوارزمية
+                if (info.ContainsKey("QuantizationLevels"))
+                {
+                    settings.QuantizationLevels = int.Parse(info["QuantizationLevels"]);
+                }
+
+                if (info.ContainsKey("QuantStep"))
+                {
+                    float quantStep = float.Parse(info["QuantStep"]);
+                    // تحويل quantStep إلى BitsPerSample
+                    int levels = (int)(2.0f / quantStep);
+                    settings.BitsPerSample = (int)Math.Log(levels, 2);
+                }
+
+                if (info.ContainsKey("PredictionCoefficient"))
+                {
+                    settings.PredictionCoefficient = double.Parse(info["PredictionCoefficient"]);
+                }
+
+                if (info.ContainsKey("StepSize"))
+                {
+                    settings.StepSize = double.Parse(info["StepSize"]);
+                }
+
+                if (info.ContainsKey("InitialStepSize"))
+                {
+                    settings.InitialStepSize = double.Parse(info["InitialStepSize"]);
+                }
+
+                if (info.ContainsKey("StepSizeMultiplier"))
+                {
+                    settings.StepSizeMultiplier = double.Parse(info["StepSizeMultiplier"]);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading algorithm settings: {ex.Message}");
+                // استخدام القيم الافتراضية في حالة الخطأ
+            }
+
+            return settings;
+        }
+
+        /// <summary>
+        /// إنشاء كائن الخوارزمية المناسب بناءً على اسمها من ملف .info
+        /// </summary>
+        private ICompressionAlgorithm CreateAlgorithmByName(string algorithmName)
+        {
+            if (algorithmName.Contains("Nonlinear"))
+                return new NonlinearQuantization();
+            else if (algorithmName.Contains("DPCM"))
+                return new DPCM();
+            else if (algorithmName.Contains("Predictive"))
+                return new PredictiveDifferentialCoding();
+            else if (algorithmName.Contains("Adaptive Delta"))
+                return new AdaptiveDeltaModulation();
+            else if (algorithmName.Contains("Delta Modulation"))
+                return new DeltaModulation();
+            else
+                throw new NotSupportedException($"خوارزمية غير مدعومة: {algorithmName}");
+        }
+
+        /// <summary>
+        /// إنشاء كائن الخوارزمية مع إعدادات مخصصة
+        /// </summary>
+        private ICompressionAlgorithm CreateAlgorithmWithSettings(string algorithmName, CompressionSettings settings)
+        {
+            if (algorithmName.Contains("Nonlinear"))
+                return new NonlinearQuantization(settings);
+            else if (algorithmName.Contains("DPCM"))
+                return new DPCM(settings);
+            else if (algorithmName.Contains("Predictive"))
+                return new PredictiveDifferentialCoding(settings);
+            else if (algorithmName.Contains("Adaptive Delta"))
+                return new AdaptiveDeltaModulation(settings);
+            else if (algorithmName.Contains("Delta Modulation"))
+                return new DeltaModulation(settings);
+            else
+                throw new NotSupportedException($"خوارزمية غير مدعومة: {algorithmName}");
+        }
+
+        /// <summary>
+        /// حفظ البيانات المفكوكة كملف WAV مؤقت
+        /// </summary>
+        private string SaveAsTempWav(float[] samples, int sampleRate, int channels, int bitsPerSample)
+        {
+            // ✅ تطبيع العينات قبل الحفظ
+            samples = NormalizeSamples(samples);
+
+            // إنشاء مسار مؤقت
+            string tempPath = Path.Combine(
+                Path.GetTempPath(),
+                $"SoundShrink_Decompressed_{DateTime.Now:yyyyMMdd_HHmmss}.wav"
+            );
+
+            // ✅ التأكد من أن عدد العينات يتوافق مع عدد القنوات
+            // إذا كان Stereo، يجب أن يكون عدد العينات زوجياً
+            if (channels == 2 && samples.Length % 2 != 0)
+            {
+                // إزالة العينة الأخيرة إذا كان العدد فردياً
+                float[] adjusted = new float[samples.Length - 1];
+                Array.Copy(samples, adjusted, adjusted.Length);
+                samples = adjusted;
+            }
+
+            // إنشاء WaveFormat
+            var waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channels);
+
+            // كتابة الملف باستخدام NAudio
+            using (var writer = new WaveFileWriter(tempPath, waveFormat))
+            {
+                writer.WriteSamples(samples, 0, samples.Length);
+            }
+
+            return tempPath;
+        }
+
+        /// <summary>
+        /// تطبيع العينات لتكون في النطاق [-1.0, 1.0]
+        /// </summary>
+        private float[] NormalizeSamples(float[] samples)
+        {
+            if (samples.Length == 0) return samples;
+
+            // إيجاد أقصى قيمة مطلقة
+            float maxAbs = 0;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                float abs = Math.Abs(samples[i]);
+                if (abs > maxAbs) maxAbs = abs;
+            }
+
+            // إذا كانت القيم صغيرة جداً، لا حاجة للتطبيع
+            if (maxAbs < 0.001f) return samples;
+
+            // إذا كانت القيم خارج النطاق، نقوم بالتطبيع
+            if (maxAbs > 1.0f)
+            {
+                float scale = 0.95f / maxAbs; // 0.95 لتجنب الوصول للحد الأقصى
+                for (int i = 0; i < samples.Length; i++)
+                {
+                    samples[i] *= scale;
+                }
+            }
+
+            return samples;
+        }
+
         #endregion
+
+        #endregion
+
     }
 }

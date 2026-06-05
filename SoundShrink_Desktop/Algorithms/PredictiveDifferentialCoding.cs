@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using SoundShrink_Desktop.Models;
 
 namespace SoundShrink_Desktop.Algorithms
 {
@@ -14,11 +15,25 @@ namespace SoundShrink_Desktop.Algorithms
         private readonly double _predictionCoeff;
         private readonly float _quantStep;
 
-        public string AlgorithmName => "Predictive Differential Coding (PDC)";
+        public string AlgorithmName => $"Predictive Differential Coding (PDC) - α={_predictionCoeff:F2}";
 
-        /// <param name="predictionCoeff">معامل التنبؤ (0.0 - 1.0). الافتراضي 0.85 يناسب الإشارات الصوتية.</param>
-        /// <param name="quantStep">حجم خطوة التكميم للخطأ. الافتراضي 0.01.</param>
-        public PredictiveDifferentialCoding(double predictionCoeff = 0.85, float quantStep = 0.01f)
+        /// <summary>
+        /// Constructor يقبل إعدادات الضغط من واجهة المستخدم
+        /// </summary>
+        /// <param name="settings">إعدادات الضغط (اختياري - يستخدم القيم الافتراضية إذا لم يتم تمريرها)</param>
+        public PredictiveDifferentialCoding(CompressionSettings settings = null)
+        {
+            // استخدام الإعدادات الممررة أو القيم الافتراضية
+            settings = settings ?? new CompressionSettings();
+
+            _predictionCoeff = settings.PredictionCoefficient;
+            _quantStep = 0.01f; // قيمة ثابتة لخطوة التكميم
+        }
+
+        /// <summary>
+        /// Constructor قديم يقبل المعاملات مباشرة (للتوافق مع الكود القديم)
+        /// </summary>
+        public PredictiveDifferentialCoding(double predictionCoeff, float quantStep = 0.01f)
         {
             _predictionCoeff = predictionCoeff;
             _quantStep = quantStep;

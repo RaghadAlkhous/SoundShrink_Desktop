@@ -46,12 +46,10 @@ namespace SoundShrink_Desktop
             this.wavePanel = new System.Windows.Forms.Panel();
             this.spectrumPanel = new System.Windows.Forms.Panel();
             this.controlsPanel = new System.Windows.Forms.Panel();
+            this.progressBar = new System.Windows.Forms.TrackBar();
             this.dropPanel = new System.Windows.Forms.Panel();
-
             this.lblDropZoneMain = new System.Windows.Forms.Label();
             this.lblDropZoneSub = new System.Windows.Forms.Label();
-
-            this.progressBar = new System.Windows.Forms.TrackBar();
             this.btnPlay = new System.Windows.Forms.Button();
             this.btnPause = new System.Windows.Forms.Button();
             this.btnStop = new System.Windows.Forms.Button();
@@ -59,114 +57,206 @@ namespace SoundShrink_Desktop
             this.lblTotalTime = new System.Windows.Forms.Label();
             this.wavePictureBox = new System.Windows.Forms.PictureBox();
             this.spectrumPictureBox = new System.Windows.Forms.PictureBox();
-
+            this.controlsPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.progressBar)).BeginInit();
+            this.dropPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.wavePictureBox)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.spectrumPictureBox)).BeginInit();
             this.SuspendLayout();
-
-            this.Text = "SoundShrink Pro - ضغط الملفات الصوتية";
-            this.BackColor = Color.FromArgb(30, 30, 35);
-            this.Font = new Font("Segoe UI", 9F);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.ClientSize = new System.Drawing.Size(900, 680);
-
+            // 
+            // infoPanel
+            // 
+            this.infoPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(50)))));
             this.infoPanel.ColumnCount = 4;
-            this.infoPanel.RowCount = 2;
+            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.infoPanel.Dock = System.Windows.Forms.DockStyle.Top;
-            this.infoPanel.Height = 100;
-            this.infoPanel.BackColor = Color.FromArgb(45, 45, 50);
-            this.infoPanel.Margin = new Padding(10);
-            this.infoPanel.Padding = new Padding(10);
-            this.infoPanel.ColumnStyles.Clear();
-            this.infoPanel.RowStyles.Clear();
-            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
+            this.infoPanel.Location = new System.Drawing.Point(0, 400);
+            this.infoPanel.Margin = new System.Windows.Forms.Padding(10);
+            this.infoPanel.Name = "infoPanel";
+            this.infoPanel.Padding = new System.Windows.Forms.Padding(10);
+            this.infoPanel.RowCount = 2;
             this.infoPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.infoPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.Controls.Add(this.infoPanel);
-
+            this.infoPanel.Size = new System.Drawing.Size(900, 100);
+            this.infoPanel.TabIndex = 0;
+            // 
+            // lblSpectrumTitle
+            // 
+            this.lblSpectrumTitle.Location = new System.Drawing.Point(0, 0);
+            this.lblSpectrumTitle.Name = "lblSpectrumTitle";
+            this.lblSpectrumTitle.Size = new System.Drawing.Size(100, 23);
+            this.lblSpectrumTitle.TabIndex = 0;
+            // 
+            // lblWaveformTitle
+            // 
+            this.lblWaveformTitle.Location = new System.Drawing.Point(0, 0);
+            this.lblWaveformTitle.Name = "lblWaveformTitle";
+            this.lblWaveformTitle.Size = new System.Drawing.Size(100, 23);
+            this.lblWaveformTitle.TabIndex = 0;
+            // 
+            // wavePanel
+            // 
+            this.wavePanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(15)))), ((int)(((byte)(20)))));
             this.wavePanel.Dock = System.Windows.Forms.DockStyle.Top;
-            this.wavePanel.Height = 200;
-            this.wavePanel.BackColor = Color.FromArgb(15, 15, 20);
-            this.wavePanel.Margin = new Padding(10);
-            this.Controls.Add(this.wavePanel);
-
+            this.wavePanel.Location = new System.Drawing.Point(0, 200);
+            this.wavePanel.Margin = new System.Windows.Forms.Padding(10);
+            this.wavePanel.Name = "wavePanel";
+            this.wavePanel.Size = new System.Drawing.Size(900, 200);
+            this.wavePanel.TabIndex = 1;
+            // 
+            // spectrumPanel
+            // 
+            this.spectrumPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(15)))), ((int)(((byte)(20)))));
             this.spectrumPanel.Dock = System.Windows.Forms.DockStyle.Top;
-            this.spectrumPanel.Height = 200;
-            this.spectrumPanel.BackColor = Color.FromArgb(15, 15, 20);
-            this.spectrumPanel.Margin = new Padding(10);
-            this.Controls.Add(this.spectrumPanel);
-
-            this.controlsPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.controlsPanel.Height = 120;
-            this.controlsPanel.BackColor = Color.FromArgb(45, 45, 50);
-            this.controlsPanel.Padding = new Padding(20, 10, 20, 10);
-            this.controlsPanel.Visible = false;
-            this.Controls.Add(this.controlsPanel);
-
-            this.progressBar.Dock = System.Windows.Forms.DockStyle.Top;
-            this.progressBar.Height = 40;
-            this.progressBar.Minimum = 0;
-            this.progressBar.Maximum = 100;
-            this.progressBar.TickFrequency = 10;
-            this.progressBar.BackColor = Color.FromArgb(45, 45, 50);
+            this.spectrumPanel.Location = new System.Drawing.Point(0, 0);
+            this.spectrumPanel.Margin = new System.Windows.Forms.Padding(10);
+            this.spectrumPanel.Name = "spectrumPanel";
+            this.spectrumPanel.Size = new System.Drawing.Size(900, 200);
+            this.spectrumPanel.TabIndex = 2;
+            
+            // 
+            // controlsPanel
+            // 
+            this.controlsPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(50)))));
             this.controlsPanel.Controls.Add(this.progressBar);
-
-
-            // dropPanel 
+            this.controlsPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.controlsPanel.Location = new System.Drawing.Point(0, 560);
+            this.controlsPanel.Name = "controlsPanel";
+            this.controlsPanel.Padding = new System.Windows.Forms.Padding(20, 10, 20, 10);
+            this.controlsPanel.Size = new System.Drawing.Size(900, 120);
+            this.controlsPanel.TabIndex = 3;
+            this.controlsPanel.Visible = false;
+            // 
+            // progressBar
+            // 
+            this.progressBar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(50)))));
+            this.progressBar.Dock = System.Windows.Forms.DockStyle.Top;
+            this.progressBar.Location = new System.Drawing.Point(20, 10);
+            this.progressBar.Maximum = 100;
+            this.progressBar.Name = "progressBar";
+            this.progressBar.Size = new System.Drawing.Size(860, 56);
+            this.progressBar.TabIndex = 0;
+            this.progressBar.TickFrequency = 10;
+            // 
+            // dropPanel
+            // 
+            this.dropPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(45)))));
+            this.dropPanel.Controls.Add(this.lblDropZoneMain);
+            this.dropPanel.Controls.Add(this.lblDropZoneSub);
             this.dropPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dropPanel.BackColor = Color.FromArgb(40, 40, 45);
-            this.dropPanel.Margin = new Padding(10);
-        
-            this.dropPanel.Click += new System.EventHandler(this.DropZone_Click); 
-            this.dropPanel.DragEnter += new System.Windows.Forms.DragEventHandler(this.Form1_DragEnter);
+            this.dropPanel.Location = new System.Drawing.Point(0, 0);
+            this.dropPanel.Margin = new System.Windows.Forms.Padding(10);
+            this.dropPanel.Name = "dropPanel";
+            this.dropPanel.Size = new System.Drawing.Size(900, 680);
+            this.dropPanel.TabIndex = 4;
+            this.dropPanel.Click += new System.EventHandler(this.DropZone_Click);
             this.dropPanel.DragDrop += new System.Windows.Forms.DragEventHandler(this.Form1_DragDrop);
-            this.Controls.Add(this.dropPanel);
-
-            this.lblDropZoneMain.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
-            this.lblDropZoneMain.ForeColor = Color.White;
-            this.lblDropZoneMain.AutoSize = false;
-            this.lblDropZoneMain.Size = new Size(400, 40);
-            this.lblDropZoneMain.TextAlign = ContentAlignment.MiddleCenter;
-            this.lblDropZoneMain.Dock = DockStyle.Top;
-            this.lblDropZoneMain.Margin = new Padding(0, 10, 0, 5);
-            this.lblDropZoneMain.Cursor = Cursors.Hand; 
-            this.lblDropZoneMain.Click += new System.EventHandler(this.DropZone_Click);  
-            this.dropPanel.Controls.Add(this.lblDropZoneMain);
-
-            this.lblDropZoneSub.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
-            this.lblDropZoneSub.ForeColor = Color.Gray;
-            this.lblDropZoneSub.AutoSize = false;
-            this.lblDropZoneSub.Size = new Size(300, 25);
-            this.lblDropZoneSub.TextAlign = ContentAlignment.MiddleCenter;
-            this.lblDropZoneSub.Dock = DockStyle.Top;
-            this.lblDropZoneSub.Margin = new Padding(0, 5, 0, 0);
-            this.lblDropZoneSub.Cursor = Cursors.Hand;  
-            this.lblDropZoneSub.Click += new System.EventHandler(this.DropZone_Click); 
-            this.dropPanel.Controls.Add(this.lblDropZoneSub);
-
+            this.dropPanel.DragEnter += new System.Windows.Forms.DragEventHandler(this.Form1_DragEnter);
+            // 
+            // lblDropZoneMain
+            // 
+            this.lblDropZoneMain.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.lblDropZoneMain.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblDropZoneMain.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold);
+            this.lblDropZoneMain.ForeColor = System.Drawing.Color.White;
+            this.lblDropZoneMain.Location = new System.Drawing.Point(0, 25);
+            this.lblDropZoneMain.Margin = new System.Windows.Forms.Padding(0, 10, 0, 5);
+            this.lblDropZoneMain.Name = "lblDropZoneMain";
+            this.lblDropZoneMain.Size = new System.Drawing.Size(900, 40);
+            this.lblDropZoneMain.TabIndex = 0;
             this.lblDropZoneMain.Text = "اسحب الملف الصوتي هنا أو انقر للاختيار";
-            this.lblDropZoneMain.Font = new Font("Segoe UI", 18F, FontStyle.Bold);
-            this.lblDropZoneMain.ForeColor = Color.White;
-            this.lblDropZoneMain.AutoSize = false;
-            this.lblDropZoneMain.Size = new Size(400, 40);
-            this.lblDropZoneMain.TextAlign = ContentAlignment.MiddleCenter;
-            this.lblDropZoneMain.Dock = DockStyle.Top;
-            this.lblDropZoneMain.Margin = new Padding(0, 10, 0, 5);
-            this.dropPanel.Controls.Add(this.lblDropZoneMain);
-
-            this.lblDropZoneSub.Margin = new Padding(0, 5, 0, 0);
-            this.dropPanel.Controls.Add(this.lblDropZoneSub);
-
-            this.dropPanel.BringToFront();
-
+            this.lblDropZoneMain.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.lblDropZoneMain.Click += new System.EventHandler(this.DropZone_Click);
+            // 
+            // lblDropZoneSub
+            // 
+            this.lblDropZoneSub.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.lblDropZoneSub.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblDropZoneSub.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.lblDropZoneSub.ForeColor = System.Drawing.Color.Gray;
+            this.lblDropZoneSub.Location = new System.Drawing.Point(0, 0);
+            this.lblDropZoneSub.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
+            this.lblDropZoneSub.Name = "lblDropZoneSub";
+            this.lblDropZoneSub.Size = new System.Drawing.Size(900, 25);
+            this.lblDropZoneSub.TabIndex = 1;
+            this.lblDropZoneSub.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.lblDropZoneSub.Click += new System.EventHandler(this.DropZone_Click);
+            // 
+            // btnPlay
+            // 
+            this.btnPlay.Location = new System.Drawing.Point(0, 0);
+            this.btnPlay.Name = "btnPlay";
+            this.btnPlay.Size = new System.Drawing.Size(75, 23);
+            this.btnPlay.TabIndex = 0;
+            // 
+            // btnPause
+            // 
+            this.btnPause.Location = new System.Drawing.Point(0, 0);
+            this.btnPause.Name = "btnPause";
+            this.btnPause.Size = new System.Drawing.Size(75, 23);
+            this.btnPause.TabIndex = 0;
+            // 
+            // btnStop
+            // 
+            this.btnStop.Location = new System.Drawing.Point(0, 0);
+            this.btnStop.Name = "btnStop";
+            this.btnStop.Size = new System.Drawing.Size(75, 23);
+            this.btnStop.TabIndex = 0;
+            // 
+            // lblCurrentTime
+            // 
+            this.lblCurrentTime.Location = new System.Drawing.Point(0, 0);
+            this.lblCurrentTime.Name = "lblCurrentTime";
+            this.lblCurrentTime.Size = new System.Drawing.Size(100, 23);
+            this.lblCurrentTime.TabIndex = 0;
+            // 
+            // lblTotalTime
+            // 
+            this.lblTotalTime.Location = new System.Drawing.Point(0, 0);
+            this.lblTotalTime.Name = "lblTotalTime";
+            this.lblTotalTime.Size = new System.Drawing.Size(100, 23);
+            this.lblTotalTime.TabIndex = 0;
+            // 
+            // wavePictureBox
+            // 
+            this.wavePictureBox.Location = new System.Drawing.Point(0, 0);
+            this.wavePictureBox.Name = "wavePictureBox";
+            this.wavePictureBox.Size = new System.Drawing.Size(100, 50);
+            this.wavePictureBox.TabIndex = 0;
+            this.wavePictureBox.TabStop = false;
+            // 
+            // spectrumPictureBox
+            // 
+            this.spectrumPictureBox.Location = new System.Drawing.Point(0, 0);
+            this.spectrumPictureBox.Name = "spectrumPictureBox";
+            this.spectrumPictureBox.Size = new System.Drawing.Size(100, 50);
+            this.spectrumPictureBox.TabIndex = 0;
+            this.spectrumPictureBox.TabStop = false;
+            // 
+            // Form1
+            // 
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(35)))));
+            this.ClientSize = new System.Drawing.Size(900, 680);
+            this.Controls.Add(this.infoPanel);
+            this.Controls.Add(this.wavePanel);
+            this.Controls.Add(this.spectrumPanel);
+            this.Controls.Add(this.controlsPanel);
+            this.Controls.Add(this.dropPanel);
+            this.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.Name = "Form1";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.Text = "SoundShrink Pro - ضغط الملفات الصوتية";
+            this.controlsPanel.ResumeLayout(false);
+            this.controlsPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.progressBar)).EndInit();
+            this.dropPanel.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.wavePictureBox)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.spectrumPictureBox)).EndInit();
             this.ResumeLayout(false);
+
         }
 
         // ✅ أضف هذه التعريفات في نهاية partial class Form1 في Form1.Designer.cs:
@@ -184,7 +274,7 @@ namespace SoundShrink_Desktop
         private System.Windows.Forms.ToolStripMenuItem saveCompressedToolStripMenuItem;
 
 
-
+        private System.Windows.Forms.ToolStripMenuItem decompressToolStripMenuItem;
         #endregion
     }
 }

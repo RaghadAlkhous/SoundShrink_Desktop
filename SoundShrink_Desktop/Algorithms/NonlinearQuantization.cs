@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using SoundShrink_Desktop.Models;
 
 namespace SoundShrink_Desktop.Algorithms
 {
@@ -15,11 +16,25 @@ namespace SoundShrink_Desktop.Algorithms
         private readonly int _quantizationLevels;
         private readonly double _mu;
 
-        public string AlgorithmName => "Nonlinear Quantization (Mu-Law)";
+        public string AlgorithmName => $"Nonlinear Quantization (Mu-Law) - {_quantizationLevels} levels";
 
-        /// <param name="quantizationLevels">عدد مستويات التكميم. الافتراضي 256 (8-bit).</param>
-        /// <param name="mu">معامل الانضغاط اللوغاريتمي. القيمة القياسية 255.0.</param>
-        public NonlinearQuantization(int quantizationLevels = 256, double mu = 255.0)
+        /// <summary>
+        /// Constructor يقبل إعدادات الضغط من واجهة المستخدم
+        /// </summary>
+        /// <param name="settings">إعدادات الضغط (اختياري - يستخدم القيم الافتراضية إذا لم يتم تمريرها)</param>
+        public NonlinearQuantization(CompressionSettings settings = null)
+        {
+            // استخدام الإعدادات الممررة أو القيم الافتراضية
+            settings = settings ?? new CompressionSettings();
+            
+            _quantizationLevels = settings.QuantizationLevels;
+            _mu = 255.0; // القيمة القياسية لمعامل الانضغاط اللوغاريتمي
+        }
+
+        /// <summary>
+        /// Constructor قديم يقبل المعاملات مباشرة (للتوافق مع الكود القديم)
+        /// </summary>
+        public NonlinearQuantization(int quantizationLevels, double mu = 255.0)
         {
             _quantizationLevels = quantizationLevels;
             _mu = mu;
