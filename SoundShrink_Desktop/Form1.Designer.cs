@@ -8,25 +8,70 @@ namespace SoundShrink_Desktop
     {
         private System.ComponentModel.IContainer components = null;
 
-        private System.Windows.Forms.TableLayoutPanel infoPanel;
-        private System.Windows.Forms.Label lblSpectrumTitle;
-        private System.Windows.Forms.Label lblWaveformTitle;
-        private System.Windows.Forms.Panel wavePanel;
-        private System.Windows.Forms.Panel spectrumPanel;
-        private System.Windows.Forms.Panel controlsPanel;
-        private System.Windows.Forms.Panel dropPanel;
+        // Sidebar elements
+        private Panel panelSidebar;
+        private Label lblAudioLab;
+        private Label lblAudioLabSub;
+        private Button btnChooseFile;
+        private Button btnCompressFile;
+        private Button btnDecompress;
+        private Button btnResetWorkspace;
+        private Label lblCompressionSettings;
+        private ComboBox cmbAlgorithm;
+        private Label lblSampleRateLabel;
+        private ComboBox cmbSampleRate;
+        private Label lblQuantLevels;
+        private NumericUpDown numQuantLevels;
+        private Label lblDeltaStep;
+        private NumericUpDown numDeltaStep;
 
-        private System.Windows.Forms.Label lblDropZoneMain;
-        private System.Windows.Forms.Label lblDropZoneSub;
+        // Main area elements
+        private Panel panelMain;
+        private Label lblMainTitle;
+        private Label lblMainSubtitle;
+        private Panel panelFileLoad;
+        private Panel panelFileInfo;
+        private Label lblFileLoadText;
+        private Label lblFileName;
+        private ProgressBar progressBarMain;
+        private Label lblPlaybackStatus;
+        private Panel panelAudioProperties;
+        private Label lblAudioPropertiesTitle;
+        private Label lblFileSizeLabel;
+        private Label lblFileSizeValue;
+        private Label lblDurationLabel;
+        private Label lblDurationValue;
+        private Label lblSampleRatePropLabel;
+        private Label lblSampleRatePropValue;
+        private Label lblChannelsLabel;
+        private Label lblChannelsValue;
+        private Label lblBitRateLabel;
+        private Label lblBitRateValue;
+        private Label lblCodecLabel;
+        private Label lblCodecValue;
+        private Label lblBitsPerSampleLabel;
+        private Label lblBitsPerSampleValue;
+        private Panel panelOperationReport;
+        private Label lblOperationReportTitle;
+        private Label lblReportContent;
+        private Panel panelCompressionRatio;
+        private Label lblCompressionRatioTitle;
+        private ProgressBar progressBarCompression;
+        private Panel panelProcessingSpeed;
+        private Label lblProcessingSpeedTitle;
+        private ProgressBar progressBarSpeed;
+        private Button btnChangeFile;
+        // Modern player controls
+        private Panel pnlTimeDisplay;
+        private Panel pnlPlayerControls;
+       
+        private Button btnPrevious;
+        private Button btnPlayPause;
+        private Button btnNext;
+     
+        private Label lblCurrentTime;
+        private Label lblRemainingTime;
 
-        private System.Windows.Forms.TrackBar progressBar;
-        private System.Windows.Forms.Button btnPlay;
-        private System.Windows.Forms.Button btnPause;
-        private System.Windows.Forms.Button btnStop;
-        private System.Windows.Forms.Label lblCurrentTime;
-        private System.Windows.Forms.Label lblTotalTime;
-        private System.Windows.Forms.PictureBox wavePictureBox;
-        private System.Windows.Forms.PictureBox spectrumPictureBox;
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -40,241 +85,838 @@ namespace SoundShrink_Desktop
 
         private void InitializeComponent()
         {
-            this.infoPanel = new System.Windows.Forms.TableLayoutPanel();
-            this.lblSpectrumTitle = new System.Windows.Forms.Label();
-            this.lblWaveformTitle = new System.Windows.Forms.Label();
-            this.wavePanel = new System.Windows.Forms.Panel();
-            this.spectrumPanel = new System.Windows.Forms.Panel();
-            this.controlsPanel = new System.Windows.Forms.Panel();
-            this.progressBar = new System.Windows.Forms.TrackBar();
-            this.dropPanel = new System.Windows.Forms.Panel();
-            this.lblDropZoneMain = new System.Windows.Forms.Label();
-            this.lblDropZoneSub = new System.Windows.Forms.Label();
-            this.btnPlay = new System.Windows.Forms.Button();
-            this.btnPause = new System.Windows.Forms.Button();
-            this.btnStop = new System.Windows.Forms.Button();
+            this.panelSidebar = new System.Windows.Forms.Panel();
+            this.lblAudioLab = new System.Windows.Forms.Label();
+            this.lblAudioLabSub = new System.Windows.Forms.Label();
+            this.btnChooseFile = new System.Windows.Forms.Button();
+            this.btnChangeFile = new System.Windows.Forms.Button();
+            this.btnCompressFile = new System.Windows.Forms.Button();
+            this.btnDecompress = new System.Windows.Forms.Button();
+            this.btnResetWorkspace = new System.Windows.Forms.Button();
+            this.lblCompressionSettings = new System.Windows.Forms.Label();
+            this.cmbAlgorithm = new System.Windows.Forms.ComboBox();
+            this.lblSampleRateLabel = new System.Windows.Forms.Label();
+            this.cmbSampleRate = new System.Windows.Forms.ComboBox();
+            this.lblQuantLevels = new System.Windows.Forms.Label();
+            this.numQuantLevels = new System.Windows.Forms.NumericUpDown();
+            this.lblDeltaStep = new System.Windows.Forms.Label();
+            this.numDeltaStep = new System.Windows.Forms.NumericUpDown();
+            this.panelMain = new System.Windows.Forms.Panel();
+            this.lblMainTitle = new System.Windows.Forms.Label();
+            this.lblMainSubtitle = new System.Windows.Forms.Label();
+            this.panelFileLoad = new System.Windows.Forms.Panel();
+            this.panelFileInfo = new System.Windows.Forms.Panel();
+            this.lblFileLoadText = new System.Windows.Forms.Label();
+            this.lblFileName = new System.Windows.Forms.Label();
+            this.progressBarMain = new System.Windows.Forms.ProgressBar();
+            this.lblPlaybackStatus = new System.Windows.Forms.Label();
+            this.pnlTimeDisplay = new System.Windows.Forms.Panel();
             this.lblCurrentTime = new System.Windows.Forms.Label();
-            this.lblTotalTime = new System.Windows.Forms.Label();
-            this.wavePictureBox = new System.Windows.Forms.PictureBox();
-            this.spectrumPictureBox = new System.Windows.Forms.PictureBox();
-            this.controlsPanel.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.progressBar)).BeginInit();
-            this.dropPanel.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.wavePictureBox)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spectrumPictureBox)).BeginInit();
+            this.lblRemainingTime = new System.Windows.Forms.Label();
+            this.pnlPlayerControls = new System.Windows.Forms.Panel();
+            
+            this.btnPrevious = new System.Windows.Forms.Button();
+            this.btnPlayPause = new System.Windows.Forms.Button();
+            this.btnNext = new System.Windows.Forms.Button();
+            
+            this.panelAudioProperties = new System.Windows.Forms.Panel();
+            this.lblAudioPropertiesTitle = new System.Windows.Forms.Label();
+            this.lblFileSizeLabel = new System.Windows.Forms.Label();
+            this.lblFileSizeValue = new System.Windows.Forms.Label();
+            this.lblDurationLabel = new System.Windows.Forms.Label();
+            this.lblDurationValue = new System.Windows.Forms.Label();
+            this.lblSampleRatePropLabel = new System.Windows.Forms.Label();
+            this.lblSampleRatePropValue = new System.Windows.Forms.Label();
+            this.lblChannelsLabel = new System.Windows.Forms.Label();
+            this.lblChannelsValue = new System.Windows.Forms.Label();
+            this.lblBitRateLabel = new System.Windows.Forms.Label();
+            this.lblBitRateValue = new System.Windows.Forms.Label();
+            this.lblCodecLabel = new System.Windows.Forms.Label();
+            this.lblCodecValue = new System.Windows.Forms.Label();
+            this.lblBitsPerSampleLabel = new System.Windows.Forms.Label();
+            this.lblBitsPerSampleValue = new System.Windows.Forms.Label();
+            this.panelOperationReport = new System.Windows.Forms.Panel();
+            this.lblOperationReportTitle = new System.Windows.Forms.Label();
+            this.lblReportContent = new System.Windows.Forms.Label();
+            this.panelCompressionRatio = new System.Windows.Forms.Panel();
+            this.lblCompressionRatioTitle = new System.Windows.Forms.Label();
+            this.progressBarCompression = new System.Windows.Forms.ProgressBar();
+            this.panelProcessingSpeed = new System.Windows.Forms.Panel();
+            this.lblProcessingSpeedTitle = new System.Windows.Forms.Label();
+            this.progressBarSpeed = new System.Windows.Forms.ProgressBar();
+            ((System.ComponentModel.ISupportInitialize)(this.numQuantLevels)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numDeltaStep)).BeginInit();
+            this.panelSidebar.SuspendLayout();
+            this.panelMain.SuspendLayout();
+            this.panelFileLoad.SuspendLayout();
+            this.pnlTimeDisplay.SuspendLayout();
+            this.pnlPlayerControls.SuspendLayout();
+            this.panelAudioProperties.SuspendLayout();
+            this.panelOperationReport.SuspendLayout();
+            this.panelCompressionRatio.SuspendLayout();
+            this.panelProcessingSpeed.SuspendLayout();
             this.SuspendLayout();
             // 
-            // infoPanel
+            // panelSidebar
             // 
-            this.infoPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(50)))));
-            this.infoPanel.ColumnCount = 4;
-            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.infoPanel.Dock = System.Windows.Forms.DockStyle.Top;
-            this.infoPanel.Location = new System.Drawing.Point(0, 400);
-            this.infoPanel.Margin = new System.Windows.Forms.Padding(10);
-            this.infoPanel.Name = "infoPanel";
-            this.infoPanel.Padding = new System.Windows.Forms.Padding(10);
-            this.infoPanel.RowCount = 2;
-            this.infoPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.infoPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.infoPanel.Size = new System.Drawing.Size(900, 100);
-            this.infoPanel.TabIndex = 0;
+            this.panelSidebar.BackColor = System.Drawing.Color.FromArgb(17, 24, 39);
+            this.panelSidebar.Controls.Add(this.lblAudioLab);
+            this.panelSidebar.Controls.Add(this.lblAudioLabSub);
+            this.panelSidebar.Controls.Add(this.btnChooseFile);
+            this.panelSidebar.Controls.Add(this.btnCompressFile);
+            this.panelSidebar.Controls.Add(this.btnDecompress);
+            this.panelSidebar.Controls.Add(this.btnResetWorkspace);
+            this.panelSidebar.Controls.Add(this.lblCompressionSettings);
+            this.panelSidebar.Controls.Add(this.cmbAlgorithm);
+            this.panelSidebar.Controls.Add(this.lblSampleRateLabel);
+            this.panelSidebar.Controls.Add(this.cmbSampleRate);
+            this.panelSidebar.Controls.Add(this.lblQuantLevels);
+            this.panelSidebar.Controls.Add(this.numQuantLevels);
+            this.panelSidebar.Controls.Add(this.lblDeltaStep);
+            this.panelSidebar.Controls.Add(this.numDeltaStep);
+            this.panelSidebar.Dock = System.Windows.Forms.DockStyle.Left;
+            this.panelSidebar.Location = new System.Drawing.Point(0, 0);
+            this.panelSidebar.Name = "panelSidebar";
+            this.panelSidebar.Size = new System.Drawing.Size(230, 780);
+            this.panelSidebar.TabIndex = 0;
             // 
-            // lblSpectrumTitle
+            // lblAudioLab
             // 
-            this.lblSpectrumTitle.Location = new System.Drawing.Point(0, 0);
-            this.lblSpectrumTitle.Name = "lblSpectrumTitle";
-            this.lblSpectrumTitle.Size = new System.Drawing.Size(100, 23);
-            this.lblSpectrumTitle.TabIndex = 0;
+            this.lblAudioLab.AutoSize = false;
+            this.lblAudioLab.Font = new System.Drawing.Font("Segoe UI", 24F, System.Drawing.FontStyle.Bold);
+            this.lblAudioLab.ForeColor = System.Drawing.Color.White;
+            this.lblAudioLab.Location = new System.Drawing.Point(35, 8);
+            this.lblAudioLab.Name = "lblAudioLab";
+            this.lblAudioLab.Size = new System.Drawing.Size(180, 40);
+            this.lblAudioLab.TabIndex = 0;
+            this.lblAudioLab.Text = "AudioLab";
             // 
-            // lblWaveformTitle
+            // lblAudioLabSub
             // 
-            this.lblWaveformTitle.Location = new System.Drawing.Point(0, 0);
-            this.lblWaveformTitle.Name = "lblWaveformTitle";
-            this.lblWaveformTitle.Size = new System.Drawing.Size(100, 23);
-            this.lblWaveformTitle.TabIndex = 0;
+            this.lblAudioLabSub.AutoSize = false;
+            this.lblAudioLabSub.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblAudioLabSub.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblAudioLabSub.Location = new System.Drawing.Point(35, 60);
+            this.lblAudioLabSub.Name = "lblAudioLabSub";
+            this.lblAudioLabSub.Size = new System.Drawing.Size(180, 20);
+            this.lblAudioLabSub.TabIndex = 1;
+            this.lblAudioLabSub.Text = "Audio Compression Desktop App";
             // 
-            // wavePanel
+            // btnChooseFile
             // 
-            this.wavePanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(15)))), ((int)(((byte)(20)))));
-            this.wavePanel.Dock = System.Windows.Forms.DockStyle.Top;
-            this.wavePanel.Location = new System.Drawing.Point(0, 200);
-            this.wavePanel.Margin = new System.Windows.Forms.Padding(10);
-            this.wavePanel.Name = "wavePanel";
-            this.wavePanel.Size = new System.Drawing.Size(900, 200);
-            this.wavePanel.TabIndex = 1;
+            this.btnChooseFile.BackColor = System.Drawing.Color.FromArgb(59, 130, 246);
+            this.btnChooseFile.FlatAppearance.BorderSize = 0;
+            this.btnChooseFile.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnChooseFile.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.btnChooseFile.ForeColor = System.Drawing.Color.White;
+            this.btnChooseFile.Location = new System.Drawing.Point(20, 110);
+            this.btnChooseFile.Name = "btnChooseFile";
+            this.btnChooseFile.Size = new System.Drawing.Size(190, 45);
+            this.btnChooseFile.TabIndex = 2;
+            this.btnChooseFile.Text = "Choose Audio File";
+            this.btnChooseFile.UseVisualStyleBackColor = false;
+            this.btnChooseFile.Click += new System.EventHandler(this.btnChooseFile_Click);
             // 
-            // spectrumPanel
+            // btnCompressFile
             // 
-            this.spectrumPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(15)))), ((int)(((byte)(15)))), ((int)(((byte)(20)))));
-            this.spectrumPanel.Dock = System.Windows.Forms.DockStyle.Top;
-            this.spectrumPanel.Location = new System.Drawing.Point(0, 0);
-            this.spectrumPanel.Margin = new System.Windows.Forms.Padding(10);
-            this.spectrumPanel.Name = "spectrumPanel";
-            this.spectrumPanel.Size = new System.Drawing.Size(900, 200);
-            this.spectrumPanel.TabIndex = 2;
-            
+            this.btnCompressFile.BackColor = System.Drawing.Color.FromArgb(59, 130, 246);
+            this.btnCompressFile.FlatAppearance.BorderSize = 0;
+            this.btnCompressFile.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnCompressFile.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.btnCompressFile.ForeColor = System.Drawing.Color.White;
+            this.btnCompressFile.Location = new System.Drawing.Point(20, 520);
+            this.btnCompressFile.Name = "btnCompressFile";
+            this.btnCompressFile.Size = new System.Drawing.Size(190, 45);
+            this.btnCompressFile.TabIndex = 13;
+            this.btnCompressFile.Text = "Compress File";
+            this.btnCompressFile.UseVisualStyleBackColor = false;
+            this.btnCompressFile.Click += new System.EventHandler(this.btnCompressFile_Click);
             // 
-            // controlsPanel
+            // btnDecompress
             // 
-            this.controlsPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(50)))));
-            this.controlsPanel.Controls.Add(this.progressBar);
-            this.controlsPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.controlsPanel.Location = new System.Drawing.Point(0, 560);
-            this.controlsPanel.Name = "controlsPanel";
-            this.controlsPanel.Padding = new System.Windows.Forms.Padding(20, 10, 20, 10);
-            this.controlsPanel.Size = new System.Drawing.Size(900, 120);
-            this.controlsPanel.TabIndex = 3;
-            this.controlsPanel.Visible = false;
+            this.btnDecompress.BackColor = System.Drawing.Color.FromArgb(6, 182, 212);
+            this.btnDecompress.FlatAppearance.BorderSize = 0;
+            this.btnDecompress.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnDecompress.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.btnDecompress.ForeColor = System.Drawing.Color.White;
+            this.btnDecompress.Location = new System.Drawing.Point(20, 575);
+            this.btnDecompress.Name = "btnDecompress";
+            this.btnDecompress.Size = new System.Drawing.Size(190, 45);
+            this.btnDecompress.TabIndex = 14;
+            this.btnDecompress.Text = "Decompress ACMP";
+            this.btnDecompress.UseVisualStyleBackColor = false;
+            this.btnDecompress.Click += new System.EventHandler(this.btnDecompress_Click);
             // 
-            // progressBar
+            // btnResetWorkspace
             // 
-            this.progressBar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(50)))));
-            this.progressBar.Dock = System.Windows.Forms.DockStyle.Top;
-            this.progressBar.Location = new System.Drawing.Point(20, 10);
-            this.progressBar.Maximum = 100;
-            this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(860, 56);
-            this.progressBar.TabIndex = 0;
-            this.progressBar.TickFrequency = 10;
+            this.btnResetWorkspace.BackColor = System.Drawing.Color.FromArgb(239, 68, 68);
+            this.btnResetWorkspace.FlatAppearance.BorderSize = 0;
+            this.btnResetWorkspace.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnResetWorkspace.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            this.btnResetWorkspace.ForeColor = System.Drawing.Color.White;
+            this.btnResetWorkspace.Location = new System.Drawing.Point(20, 165);
+            this.btnResetWorkspace.Name = "btnResetWorkspace";
+            this.btnResetWorkspace.Size = new System.Drawing.Size(190, 45);
+            this.btnResetWorkspace.TabIndex = 15;
+            this.btnResetWorkspace.Text = "Reset Workspace";
+            this.btnResetWorkspace.UseVisualStyleBackColor = false;
+            this.btnResetWorkspace.Click += new System.EventHandler(this.btnResetWorkspace_Click);
             // 
-            // dropPanel
+            // lblCompressionSettings
             // 
-            this.dropPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(45)))));
-            this.dropPanel.Controls.Add(this.lblDropZoneMain);
-            this.dropPanel.Controls.Add(this.lblDropZoneSub);
-            this.dropPanel.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dropPanel.Location = new System.Drawing.Point(0, 0);
-            this.dropPanel.Margin = new System.Windows.Forms.Padding(10);
-            this.dropPanel.Name = "dropPanel";
-            this.dropPanel.Size = new System.Drawing.Size(900, 680);
-            this.dropPanel.TabIndex = 4;
-            this.dropPanel.Click += new System.EventHandler(this.DropZone_Click);
-            this.dropPanel.DragDrop += new System.Windows.Forms.DragEventHandler(this.Form1_DragDrop);
-            this.dropPanel.DragEnter += new System.Windows.Forms.DragEventHandler(this.Form1_DragEnter);
+            this.lblCompressionSettings.AutoSize = false;
+            this.lblCompressionSettings.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
+            this.lblCompressionSettings.ForeColor = System.Drawing.Color.White;
+            this.lblCompressionSettings.Location = new System.Drawing.Point(20, 290);
+            this.lblCompressionSettings.Name = "lblCompressionSettings";
+            this.lblCompressionSettings.Size = new System.Drawing.Size(180, 25);
+            this.lblCompressionSettings.TabIndex = 5;
+            this.lblCompressionSettings.Text = "Compression Settings";
             // 
-            // lblDropZoneMain
+            // cmbAlgorithm
             // 
-            this.lblDropZoneMain.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.lblDropZoneMain.Dock = System.Windows.Forms.DockStyle.Top;
-            this.lblDropZoneMain.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold);
-            this.lblDropZoneMain.ForeColor = System.Drawing.Color.White;
-            this.lblDropZoneMain.Location = new System.Drawing.Point(0, 25);
-            this.lblDropZoneMain.Margin = new System.Windows.Forms.Padding(0, 10, 0, 5);
-            this.lblDropZoneMain.Name = "lblDropZoneMain";
-            this.lblDropZoneMain.Size = new System.Drawing.Size(900, 40);
-            this.lblDropZoneMain.TabIndex = 0;
-            this.lblDropZoneMain.Text = "اسحب الملف الصوتي هنا أو انقر للاختيار";
-            this.lblDropZoneMain.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.lblDropZoneMain.Click += new System.EventHandler(this.DropZone_Click);
+            this.cmbAlgorithm.BackColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            this.cmbAlgorithm.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbAlgorithm.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbAlgorithm.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.cmbAlgorithm.ForeColor = System.Drawing.Color.White;
+            this.cmbAlgorithm.FormattingEnabled = true;
+            this.cmbAlgorithm.Items.AddRange(new object[] {
+            "Nonlinear Quantization",
+            "DPCM",
+            "Predictive Differential Coding",
+            "Delta Modulation",
+            "Adaptive Delta Modulation"});
+            this.cmbAlgorithm.Location = new System.Drawing.Point(20, 325);
+            this.cmbAlgorithm.Name = "cmbAlgorithm";
+            this.cmbAlgorithm.Size = new System.Drawing.Size(190, 31);
+            this.cmbAlgorithm.TabIndex = 6;
             // 
-            // lblDropZoneSub
+            // lblSampleRateLabel
             // 
-            this.lblDropZoneSub.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.lblDropZoneSub.Dock = System.Windows.Forms.DockStyle.Top;
-            this.lblDropZoneSub.Font = new System.Drawing.Font("Segoe UI", 11F);
-            this.lblDropZoneSub.ForeColor = System.Drawing.Color.Gray;
-            this.lblDropZoneSub.Location = new System.Drawing.Point(0, 0);
-            this.lblDropZoneSub.Margin = new System.Windows.Forms.Padding(0, 5, 0, 0);
-            this.lblDropZoneSub.Name = "lblDropZoneSub";
-            this.lblDropZoneSub.Size = new System.Drawing.Size(900, 25);
-            this.lblDropZoneSub.TabIndex = 1;
-            this.lblDropZoneSub.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.lblDropZoneSub.Click += new System.EventHandler(this.DropZone_Click);
+            this.lblSampleRateLabel.AutoSize = false;
+            this.lblSampleRateLabel.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblSampleRateLabel.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblSampleRateLabel.Location = new System.Drawing.Point(20, 370);
+            this.lblSampleRateLabel.Name = "lblSampleRateLabel";
+            this.lblSampleRateLabel.Size = new System.Drawing.Size(100, 20);
+            this.lblSampleRateLabel.TabIndex = 7;
+            this.lblSampleRateLabel.Text = "Sample Rate";
             // 
-            // btnPlay
+            // cmbSampleRate
             // 
-            this.btnPlay.Location = new System.Drawing.Point(0, 0);
-            this.btnPlay.Name = "btnPlay";
-            this.btnPlay.Size = new System.Drawing.Size(75, 23);
-            this.btnPlay.TabIndex = 0;
+            this.cmbSampleRate.BackColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            this.cmbSampleRate.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbSampleRate.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbSampleRate.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.cmbSampleRate.ForeColor = System.Drawing.Color.White;
+            this.cmbSampleRate.FormattingEnabled = true;
+            this.cmbSampleRate.Items.AddRange(new object[] {
+            "Original",
+            "8000",
+            "16000",
+            "22050",
+            "44100",
+            "48000"});
+            this.cmbSampleRate.Location = new System.Drawing.Point(20, 395);
+            this.cmbSampleRate.Name = "cmbSampleRate";
+            this.cmbSampleRate.Size = new System.Drawing.Size(190, 31);
+            this.cmbSampleRate.TabIndex = 8;
             // 
-            // btnPause
+            // lblQuantLevels
             // 
-            this.btnPause.Location = new System.Drawing.Point(0, 0);
-            this.btnPause.Name = "btnPause";
-            this.btnPause.Size = new System.Drawing.Size(75, 23);
-            this.btnPause.TabIndex = 0;
+            this.lblQuantLevels.AutoSize = false;
+            this.lblQuantLevels.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblQuantLevels.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblQuantLevels.Location = new System.Drawing.Point(20, 440);
+            this.lblQuantLevels.Name = "lblQuantLevels";
+            this.lblQuantLevels.Size = new System.Drawing.Size(90, 18);
+            this.lblQuantLevels.TabIndex = 9;
+            this.lblQuantLevels.Text = "Quantization Levels";
             // 
-            // btnStop
+            // numQuantLevels
             // 
-            this.btnStop.Location = new System.Drawing.Point(0, 0);
-            this.btnStop.Name = "btnStop";
-            this.btnStop.Size = new System.Drawing.Size(75, 23);
-            this.btnStop.TabIndex = 0;
+            this.numQuantLevels.BackColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            this.numQuantLevels.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.numQuantLevels.ForeColor = System.Drawing.Color.White;
+            this.numQuantLevels.Location = new System.Drawing.Point(20, 462);
+            this.numQuantLevels.Maximum = new decimal(new int[] { 256, 0, 0, 0 });
+            this.numQuantLevels.Minimum = new decimal(new int[] { 2, 0, 0, 0 });
+            this.numQuantLevels.Name = "numQuantLevels";
+            this.numQuantLevels.Size = new System.Drawing.Size(85, 27);
+            this.numQuantLevels.TabIndex = 10;
+            this.numQuantLevels.Value = new decimal(new int[] { 16, 0, 0, 0 });
+            // 
+            // lblDeltaStep
+            // 
+            this.lblDeltaStep.AutoSize = false;
+            this.lblDeltaStep.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblDeltaStep.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblDeltaStep.Location = new System.Drawing.Point(125, 440);
+            this.lblDeltaStep.Name = "lblDeltaStep";
+            this.lblDeltaStep.Size = new System.Drawing.Size(90, 18);
+            this.lblDeltaStep.TabIndex = 11;
+            this.lblDeltaStep.Text = "Delta Step";
+            // 
+            // numDeltaStep
+            // 
+            this.numDeltaStep.BackColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            this.numDeltaStep.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.numDeltaStep.ForeColor = System.Drawing.Color.White;
+            this.numDeltaStep.Location = new System.Drawing.Point(125, 462);
+            this.numDeltaStep.Maximum = new decimal(new int[] { 10000, 0, 0, 0 });
+            this.numDeltaStep.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+            this.numDeltaStep.Name = "numDeltaStep";
+            this.numDeltaStep.Size = new System.Drawing.Size(85, 27);
+            this.numDeltaStep.TabIndex = 12;
+            this.numDeltaStep.Value = new decimal(new int[] { 512, 0, 0, 0 });
+            // 
+            // panelMain
+            // 
+            this.panelMain.BackColor = System.Drawing.Color.FromArgb(10, 22, 40);
+            this.panelMain.Controls.Add(this.lblMainTitle);
+            this.panelMain.Controls.Add(this.lblMainSubtitle);
+            this.panelMain.Controls.Add(this.panelFileLoad);
+            this.panelMain.Controls.Add(this.panelAudioProperties);
+            this.panelMain.Controls.Add(this.panelOperationReport);
+            this.panelMain.Controls.Add(this.panelCompressionRatio);
+            this.panelMain.Controls.Add(this.panelProcessingSpeed);
+            this.panelMain.Controls.Add(this.panelCompressionRatio);  
+            this.panelMain.Controls.Add(this.panelProcessingSpeed);
+            this.panelMain.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panelMain.Location = new System.Drawing.Point(220, 0);
+            this.panelMain.Name = "panelMain";
+            this.panelMain.Size = new System.Drawing.Size(780, 780);
+            this.panelMain.TabIndex = 1;
+            // 
+            // lblMainTitle
+            // 
+            this.lblMainTitle.AutoSize = false;
+            this.lblMainTitle.Font = new System.Drawing.Font("Segoe UI", 24F, System.Drawing.FontStyle.Bold);
+            this.lblMainTitle.ForeColor = System.Drawing.Color.White;
+            this.lblMainTitle.Location = new System.Drawing.Point(20, 10);
+            this.lblMainTitle.Name = "lblMainTitle";
+            this.lblMainTitle.Size = new System.Drawing.Size(800, 40);
+            this.lblMainTitle.TabIndex = 0;
+            this.lblMainTitle.Text = "Universal Audio Compression Workspace";
+            // 
+            // lblMainSubtitle
+            // 
+            this.lblMainSubtitle.AutoSize = false;
+            this.lblMainSubtitle.Font = new System.Drawing.Font("Segoe UI", 12F);
+            this.lblMainSubtitle.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblMainSubtitle.Location = new System.Drawing.Point(20, 60);
+            this.lblMainSubtitle.Name = "lblMainSubtitle";
+            this.lblMainSubtitle.Size = new System.Drawing.Size(800, 25);
+            this.lblMainSubtitle.TabIndex = 1;
+            this.lblMainSubtitle.Text = "Load, preview, configure, compress, monitor, cancel, decompress, reset, and save audio files.";
+            // 
+            // panelFileLoad
+            // 
+            this.panelFileLoad.BackColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            this.panelFileLoad.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelFileLoad.Controls.Add(this.panelFileInfo);
+            this.panelFileLoad.Controls.Add(this.lblPlaybackStatus);
+            this.panelFileLoad.Controls.Add(this.pnlTimeDisplay);
+            this.panelFileLoad.Controls.Add(this.progressBarMain);
+            this.panelFileLoad.Controls.Add(this.pnlPlayerControls);
+            this.panelFileLoad.Location = new System.Drawing.Point(20, 110);
+            this.panelFileLoad.Name = "panelFileLoad";
+            this.panelFileLoad.Size = new System.Drawing.Size(800, 320);
+            this.panelFileLoad.TabIndex = 2;
+            // 
+            // panelFileInfo
+            // 
+            this.panelFileInfo.BackColor = System.Drawing.Color.FromArgb(30, 42, 80);
+            this.panelFileInfo.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelFileInfo.Controls.Add(this.lblFileLoadText);
+            this.panelFileInfo.Controls.Add(this.lblFileName);
+            this.panelFileInfo.Location = new System.Drawing.Point(40, 20);
+            this.panelFileInfo.Name = "panelFileInfo";
+            this.panelFileInfo.Size = new System.Drawing.Size(720, 150);
+            this.panelFileInfo.TabIndex = 0;
+
+            // 
+            // lblFileLoadText
+            // 
+            this.lblFileLoadText.AutoSize = false;
+            this.lblFileLoadText.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Bold);  
+            this.lblFileLoadText.ForeColor = System.Drawing.Color.White;
+            this.lblFileLoadText.Location = new System.Drawing.Point(0, 20); 
+            this.lblFileLoadText.Name = "lblFileLoadText";
+            this.lblFileLoadText.Size = new System.Drawing.Size(720, 50); 
+            this.lblFileLoadText.TabIndex = 0;
+            this.lblFileLoadText.Text = "Drag or select an audio file";
+            this.lblFileLoadText.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+
+            // 
+            // lblFileName
+            // 
+            this.lblFileName.AutoSize = false;
+            this.lblFileName.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.lblFileName.ForeColor = System.Drawing.Color.FromArgb(220, 220, 220);
+            this.lblFileName.Location = new System.Drawing.Point(0, 75);
+            this.lblFileName.Name = "lblFileName";
+            this.lblFileName.Size = new System.Drawing.Size(720, 35); 
+            this.lblFileName.TabIndex = 1;
+            this.lblFileName.Text = "";
+            this.lblFileName.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // lblPlaybackStatus
+            // 
+            this.lblPlaybackStatus.AutoSize = false;
+            this.lblPlaybackStatus.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblPlaybackStatus.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblPlaybackStatus.Location = new System.Drawing.Point(20, 290); 
+            this.lblPlaybackStatus.Name = "lblPlaybackStatus";
+            this.lblPlaybackStatus.Size = new System.Drawing.Size(740, 20); 
+            this.lblPlaybackStatus.TabIndex = 2;
+            this.lblPlaybackStatus.Text = "";
+            this.lblPlaybackStatus.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // pnlTimeDisplay
+            // 
+            this.pnlTimeDisplay.BackColor = System.Drawing.Color.Transparent;
+            this.pnlTimeDisplay.Controls.Add(this.lblCurrentTime);
+            this.pnlTimeDisplay.Controls.Add(this.lblRemainingTime);
+            this.pnlTimeDisplay.Location = new System.Drawing.Point(20, 190); 
+            this.pnlTimeDisplay.Name = "pnlTimeDisplay";
+            this.pnlTimeDisplay.Size = new System.Drawing.Size(770, 25); 
+            this.pnlTimeDisplay.TabIndex = 3;
             // 
             // lblCurrentTime
             // 
-            this.lblCurrentTime.Location = new System.Drawing.Point(0, 0);
+            this.lblCurrentTime.AutoSize = true;
+            this.lblCurrentTime.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblCurrentTime.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblCurrentTime.Location = new System.Drawing.Point(0, 3);
             this.lblCurrentTime.Name = "lblCurrentTime";
-            this.lblCurrentTime.Size = new System.Drawing.Size(100, 23);
+            this.lblCurrentTime.Size = new System.Drawing.Size(35, 19);
             this.lblCurrentTime.TabIndex = 0;
+            this.lblCurrentTime.Text = "0:00";
             // 
-            // lblTotalTime
+            // lblRemainingTime
             // 
-            this.lblTotalTime.Location = new System.Drawing.Point(0, 0);
-            this.lblTotalTime.Name = "lblTotalTime";
-            this.lblTotalTime.Size = new System.Drawing.Size(100, 23);
-            this.lblTotalTime.TabIndex = 0;
+            this.lblRemainingTime.AutoSize = true;
+            this.lblRemainingTime.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblRemainingTime.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblRemainingTime.Location = new System.Drawing.Point(715, 3);
+            this.lblRemainingTime.Name = "lblRemainingTime";
+            this.lblRemainingTime.Size = new System.Drawing.Size(45, 19);
+            this.lblRemainingTime.TabIndex = 1;
+            this.lblRemainingTime.Text = "-0:00";
             // 
-            // wavePictureBox
+            // progressBarMain
             // 
-            this.wavePictureBox.Location = new System.Drawing.Point(0, 0);
-            this.wavePictureBox.Name = "wavePictureBox";
-            this.wavePictureBox.Size = new System.Drawing.Size(100, 50);
-            this.wavePictureBox.TabIndex = 0;
-            this.wavePictureBox.TabStop = false;
+            this.progressBarMain.ForeColor = System.Drawing.Color.FromArgb(16, 185, 129);
+            this.progressBarMain.Location = new System.Drawing.Point(20, 220);
+            this.progressBarMain.Maximum = 100;
+            this.progressBarMain.Name = "progressBarMain";
+            this.progressBarMain.Size = new System.Drawing.Size(760, 8);  
+            this.progressBarMain.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
+            this.progressBarMain.TabIndex = 4;
+            this.progressBarMain.Value = 0;
+
             // 
-            // spectrumPictureBox
+            // pnlPlayerControls
             // 
-            this.spectrumPictureBox.Location = new System.Drawing.Point(0, 0);
-            this.spectrumPictureBox.Name = "spectrumPictureBox";
-            this.spectrumPictureBox.Size = new System.Drawing.Size(100, 50);
-            this.spectrumPictureBox.TabIndex = 0;
-            this.spectrumPictureBox.TabStop = false;
+            this.pnlPlayerControls.BackColor = System.Drawing.Color.Transparent;
+            this.pnlPlayerControls.Controls.Add(this.btnPrevious);
+            this.pnlPlayerControls.Controls.Add(this.btnPlayPause);
+            this.pnlPlayerControls.Controls.Add(this.btnNext);
+            this.pnlPlayerControls.Location = new System.Drawing.Point(0, 220); 
+            this.pnlPlayerControls.Name = "pnlPlayerControls";
+            this.pnlPlayerControls.Size = new System.Drawing.Size(860, 150); 
+            this.pnlPlayerControls.TabIndex = 5;
+
+            // 
+            // btnPrevious
+            // 
+            this.btnPrevious.BackColor = System.Drawing.Color.Transparent;
+            this.btnPrevious.FlatAppearance.BorderSize = 0;
+            this.btnPrevious.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(50, 55, 65); // ✅ رمادي غامق
+            this.btnPrevious.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(40, 45, 55); // ✅ أغمق عند الضغط
+            this.btnPrevious.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnPrevious.Font = new System.Drawing.Font("Segoe UI", 16F);
+            this.btnPrevious.ForeColor = System.Drawing.Color.White;
+            this.btnPrevious.Location = new System.Drawing.Point(305, 25);
+            this.btnPrevious.Name = "btnPrevious";
+            this.btnPrevious.Size = new System.Drawing.Size(40, 40);
+            this.btnPrevious.TabIndex = 1;
+            this.btnPrevious.Text = "⏮";
+            this.btnPrevious.TextAlign = System.Drawing.ContentAlignment.MiddleCenter; // ✅ توسيط الأيقونة
+            this.btnPrevious.UseVisualStyleBackColor = false;
+
+            // 
+            // btnPlayPause
+            // 
+            this.btnPlayPause.BackColor = System.Drawing.Color.Transparent;
+            this.btnPlayPause.FlatAppearance.BorderSize = 0;
+            this.btnPlayPause.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(50, 55, 65); // ✅ رمادي غامق
+            this.btnPlayPause.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(40, 45, 55); // ✅ أغمق عند الضغط
+            this.btnPlayPause.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnPlayPause.Font = new System.Drawing.Font("Segoe UI", 24F);
+            this.btnPlayPause.ForeColor = System.Drawing.Color.White;
+            this.btnPlayPause.Location = new System.Drawing.Point(385, 20);
+            this.btnPlayPause.Name = "btnPlayPause";
+            this.btnPlayPause.Size = new System.Drawing.Size(50, 50);
+            this.btnPlayPause.TabIndex = 2;
+            this.btnPlayPause.Text = "▶";
+            this.btnPlayPause.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.btnPlayPause.UseVisualStyleBackColor = false;
+
+            // 
+            // btnNext
+            // 
+            this.btnNext.BackColor = System.Drawing.Color.Transparent;
+            this.btnNext.FlatAppearance.BorderSize = 0;
+            this.btnNext.FlatAppearance.MouseOverBackColor = System.Drawing.Color.FromArgb(50, 55, 65); // ✅ رمادي غامق
+            this.btnNext.FlatAppearance.MouseDownBackColor = System.Drawing.Color.FromArgb(40, 45, 55); // ✅ أغمق عند الضغط
+            this.btnNext.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnNext.Font = new System.Drawing.Font("Segoe UI", 16F);
+            this.btnNext.ForeColor = System.Drawing.Color.White;
+            this.btnNext.Location = new System.Drawing.Point(465, 25);
+            this.btnNext.Name = "btnNext";
+            this.btnNext.Size = new System.Drawing.Size(40, 40);
+            this.btnNext.TabIndex = 3;
+            this.btnNext.Text = "⏭";
+            this.btnNext.TextAlign = System.Drawing.ContentAlignment.MiddleCenter; // ✅ توسيط الأيقونة
+            this.btnNext.UseVisualStyleBackColor = false;
+           
+            // 
+            // panelAudioProperties
+            // 
+            this.panelAudioProperties.BackColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            this.panelAudioProperties.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelAudioProperties.Controls.Add(this.lblAudioPropertiesTitle);
+            this.panelAudioProperties.Controls.Add(this.lblFileSizeLabel);
+            this.panelAudioProperties.Controls.Add(this.lblFileSizeValue);
+            this.panelAudioProperties.Controls.Add(this.lblDurationLabel);
+            this.panelAudioProperties.Controls.Add(this.lblDurationValue);
+            this.panelAudioProperties.Controls.Add(this.lblSampleRatePropLabel);
+            this.panelAudioProperties.Controls.Add(this.lblSampleRatePropValue);
+            this.panelAudioProperties.Controls.Add(this.lblChannelsLabel);
+            this.panelAudioProperties.Controls.Add(this.lblChannelsValue);
+            this.panelAudioProperties.Controls.Add(this.lblBitRateLabel);
+            this.panelAudioProperties.Controls.Add(this.lblBitRateValue);
+            this.panelAudioProperties.Controls.Add(this.lblCodecLabel);
+            this.panelAudioProperties.Controls.Add(this.lblCodecValue);
+            this.panelAudioProperties.Controls.Add(this.lblBitsPerSampleLabel);
+            this.panelAudioProperties.Controls.Add(this.lblBitsPerSampleValue);
+            this.panelAudioProperties.Location = new System.Drawing.Point(840, 110);
+            this.panelAudioProperties.Name = "panelAudioProperties";
+            this.panelAudioProperties.Size = new System.Drawing.Size(320, 320);
+            this.panelAudioProperties.TabIndex = 3;
+            // 
+            // lblAudioPropertiesTitle
+            // 
+            this.lblAudioPropertiesTitle.AutoSize = false;
+            this.lblAudioPropertiesTitle.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Bold);
+            this.lblAudioPropertiesTitle.ForeColor = System.Drawing.Color.White;
+            this.lblAudioPropertiesTitle.Location = new System.Drawing.Point(20, 15);
+            this.lblAudioPropertiesTitle.Name = "lblAudioPropertiesTitle";
+            this.lblAudioPropertiesTitle.Size = new System.Drawing.Size(380, 30);
+            this.lblAudioPropertiesTitle.TabIndex = 0;
+            this.lblAudioPropertiesTitle.Text = "Audio Properties";
+            // 
+            // lblFileSizeLabel
+            // 
+            this.lblFileSizeLabel.AutoSize = false;
+            this.lblFileSizeLabel.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblFileSizeLabel.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblFileSizeLabel.Location = new System.Drawing.Point(15, 60);   // ✅ X=15
+            this.lblFileSizeLabel.Name = "lblFileSizeLabel";
+            this.lblFileSizeLabel.Size = new System.Drawing.Size(145, 20);      // ✅ Width=145
+            this.lblFileSizeLabel.TabIndex = 1;
+            this.lblFileSizeLabel.Text = "File Size";
+
+            // 
+            // lblFileSizeValue
+            // 
+            this.lblFileSizeValue.AutoSize = false;
+            this.lblFileSizeValue.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblFileSizeValue.ForeColor = System.Drawing.Color.White;
+            this.lblFileSizeValue.Location = new System.Drawing.Point(165, 60);  // ✅ X=165
+            this.lblFileSizeValue.Name = "lblFileSizeValue";
+            this.lblFileSizeValue.Size = new System.Drawing.Size(140, 20);       // ✅ Width=140
+            this.lblFileSizeValue.TabIndex = 2;
+            this.lblFileSizeValue.Text = "";
+            this.lblFileSizeValue.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+
+            // 
+            // lblDurationLabel
+            // 
+            this.lblDurationLabel.AutoSize = false;
+            this.lblDurationLabel.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblDurationLabel.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblDurationLabel.Location = new System.Drawing.Point(15, 95);   // ✅ X=15 (نفس File Size)
+            this.lblDurationLabel.Name = "lblDurationLabel";
+            this.lblDurationLabel.Size = new System.Drawing.Size(145, 20);       // ✅ Width=145
+            this.lblDurationLabel.TabIndex = 3;
+            this.lblDurationLabel.Text = "Duration";
+
+            // 
+            // lblDurationValue
+            // 
+            this.lblDurationValue.AutoSize = false;
+            this.lblDurationValue.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblDurationValue.ForeColor = System.Drawing.Color.White;
+            this.lblDurationValue.Location = new System.Drawing.Point(165, 95);  // ✅ X=165
+            this.lblDurationValue.Name = "lblDurationValue";
+            this.lblDurationValue.Size = new System.Drawing.Size(140, 20);       // ✅ Width=140
+            this.lblDurationValue.TabIndex = 4;
+            this.lblDurationValue.Text = "";
+            this.lblDurationValue.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+
+            // 
+            // lblSampleRatePropLabel
+            // 
+            this.lblSampleRatePropLabel.AutoSize = false;
+            this.lblSampleRatePropLabel.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblSampleRatePropLabel.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblSampleRatePropLabel.Location = new System.Drawing.Point(15, 130);  // ✅ X=15
+            this.lblSampleRatePropLabel.Name = "lblSampleRatePropLabel";
+            this.lblSampleRatePropLabel.Size = new System.Drawing.Size(145, 20);       // ✅ Width=145
+            this.lblSampleRatePropLabel.TabIndex = 5;
+            this.lblSampleRatePropLabel.Text = "Sample Rate";
+
+            // 
+            // lblSampleRatePropValue
+            // 
+            this.lblSampleRatePropValue.AutoSize = false;
+            this.lblSampleRatePropValue.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblSampleRatePropValue.ForeColor = System.Drawing.Color.White;
+            this.lblSampleRatePropValue.Location = new System.Drawing.Point(165, 130); // ✅ X=165
+            this.lblSampleRatePropValue.Name = "lblSampleRatePropValue";
+            this.lblSampleRatePropValue.Size = new System.Drawing.Size(140, 20);       // ✅ Width=140
+            this.lblSampleRatePropValue.TabIndex = 6;
+            this.lblSampleRatePropValue.Text = "";
+            this.lblSampleRatePropValue.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+
+            // 
+            // lblChannelsLabel
+            // 
+            this.lblChannelsLabel.AutoSize = false;
+            this.lblChannelsLabel.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblChannelsLabel.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblChannelsLabel.Location = new System.Drawing.Point(15, 165);  // ✅ X=15
+            this.lblChannelsLabel.Name = "lblChannelsLabel";
+            this.lblChannelsLabel.Size = new System.Drawing.Size(145, 20);       // ✅ Width=145
+            this.lblChannelsLabel.TabIndex = 7;
+            this.lblChannelsLabel.Text = "Channels";
+
+            // 
+            // lblChannelsValue
+            // 
+            this.lblChannelsValue.AutoSize = false;
+            this.lblChannelsValue.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblChannelsValue.ForeColor = System.Drawing.Color.White;
+            this.lblChannelsValue.Location = new System.Drawing.Point(165, 165); // ✅ X=165
+            this.lblChannelsValue.Name = "lblChannelsValue";
+            this.lblChannelsValue.Size = new System.Drawing.Size(140, 20);       // ✅ Width=140
+            this.lblChannelsValue.TabIndex = 8;
+            this.lblChannelsValue.Text = "";
+            this.lblChannelsValue.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+
+            // 
+            // lblBitRateLabel
+            // 
+            this.lblBitRateLabel.AutoSize = false;
+            this.lblBitRateLabel.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblBitRateLabel.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblBitRateLabel.Location = new System.Drawing.Point(15, 200);  // ✅ X=15
+            this.lblBitRateLabel.Name = "lblBitRateLabel";
+            this.lblBitRateLabel.Size = new System.Drawing.Size(145, 20);       // ✅ Width=145
+            this.lblBitRateLabel.TabIndex = 9;
+            this.lblBitRateLabel.Text = "Bit Rate";
+
+            // 
+            // lblBitRateValue
+            // 
+            this.lblBitRateValue.AutoSize = false;
+            this.lblBitRateValue.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblBitRateValue.ForeColor = System.Drawing.Color.White;
+            this.lblBitRateValue.Location = new System.Drawing.Point(165, 200); // ✅ X=165
+            this.lblBitRateValue.Name = "lblBitRateValue";
+            this.lblBitRateValue.Size = new System.Drawing.Size(140, 20);       // ✅ Width=140
+            this.lblBitRateValue.TabIndex = 10;
+            this.lblBitRateValue.Text = "";
+            this.lblBitRateValue.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+
+            // 
+            // lblCodecLabel
+            // 
+            this.lblCodecLabel.AutoSize = false;
+            this.lblCodecLabel.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblCodecLabel.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblCodecLabel.Location = new System.Drawing.Point(15, 235);  // ✅ X=15
+            this.lblCodecLabel.Name = "lblCodecLabel";
+            this.lblCodecLabel.Size = new System.Drawing.Size(145, 20);       // ✅ Width=145
+            this.lblCodecLabel.TabIndex = 11;
+            this.lblCodecLabel.Text = "Codec";
+
+            // 
+            // lblCodecValue
+            // 
+            this.lblCodecValue.AutoSize = false;
+            this.lblCodecValue.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblCodecValue.ForeColor = System.Drawing.Color.White;
+            this.lblCodecValue.Location = new System.Drawing.Point(165, 235); // ✅ X=165
+            this.lblCodecValue.Name = "lblCodecValue";
+            this.lblCodecValue.Size = new System.Drawing.Size(140, 20);       // ✅ Width=140
+            this.lblCodecValue.TabIndex = 12;
+            this.lblCodecValue.Text = "";
+            this.lblCodecValue.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+
+            // 
+            // lblBitsPerSampleLabel
+            // 
+            this.lblBitsPerSampleLabel.AutoSize = false;
+            this.lblBitsPerSampleLabel.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblBitsPerSampleLabel.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblBitsPerSampleLabel.Location = new System.Drawing.Point(15, 270);  // ✅ X=15
+            this.lblBitsPerSampleLabel.Name = "lblBitsPerSampleLabel";
+            this.lblBitsPerSampleLabel.Size = new System.Drawing.Size(145, 20);       // ✅ Width=145
+            this.lblBitsPerSampleLabel.TabIndex = 13;
+            this.lblBitsPerSampleLabel.Text = "Bits/Sample";
+
+            // 
+            // lblBitsPerSampleValue
+            // 
+            this.lblBitsPerSampleValue.AutoSize = false;
+            this.lblBitsPerSampleValue.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblBitsPerSampleValue.ForeColor = System.Drawing.Color.White;
+            this.lblBitsPerSampleValue.Location = new System.Drawing.Point(165, 270); // ✅ X=165
+            this.lblBitsPerSampleValue.Name = "lblBitsPerSampleValue";
+            this.lblBitsPerSampleValue.Size = new System.Drawing.Size(140, 20);       // ✅ Width=140
+            this.lblBitsPerSampleValue.TabIndex = 14;
+            this.lblBitsPerSampleValue.Text = "";
+            this.lblBitsPerSampleValue.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            // 
+            // panelOperationReport
+            // 
+            this.panelOperationReport.BackColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            this.panelOperationReport.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelOperationReport.Controls.Add(this.lblOperationReportTitle);
+            this.panelOperationReport.Controls.Add(this.lblReportContent);
+            this.panelOperationReport.Location = new System.Drawing.Point(20, 450);
+            this.panelOperationReport.Name = "panelOperationReport";
+            this.panelOperationReport.Size = new System.Drawing.Size(700, 220);
+            this.panelOperationReport.TabIndex = 4;
+            // 
+            // lblOperationReportTitle
+            // 
+            this.lblOperationReportTitle.AutoSize = false;
+            this.lblOperationReportTitle.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Bold);
+            this.lblOperationReportTitle.ForeColor = System.Drawing.Color.White;
+            this.lblOperationReportTitle.Location = new System.Drawing.Point(20, 15);
+            this.lblOperationReportTitle.Name = "lblOperationReportTitle";
+            this.lblOperationReportTitle.Size = new System.Drawing.Size(300, 30);
+            this.lblOperationReportTitle.TabIndex = 0;
+            this.lblOperationReportTitle.Text = "Operation Report";
+            // 
+            // lblReportContent
+            // 
+            this.lblReportContent.AutoSize = false;
+            this.lblReportContent.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblReportContent.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblReportContent.Location = new System.Drawing.Point(20, 55);
+            this.lblReportContent.Name = "lblReportContent";
+            this.lblReportContent.Size = new System.Drawing.Size(660, 150);
+            this.lblReportContent.TabIndex = 1;
+            this.lblReportContent.Text = "";
+            // 
+            // panelCompressionRatio
+            // 
+            this.panelCompressionRatio.BackColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            this.panelCompressionRatio.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelCompressionRatio.Controls.Add(this.lblCompressionRatioTitle);
+            this.panelCompressionRatio.Controls.Add(this.progressBarCompression);
+            this.panelCompressionRatio.Location = new System.Drawing.Point(740, 450);
+            this.panelCompressionRatio.Name = "panelCompressionRatio";
+            this.panelCompressionRatio.Size = new System.Drawing.Size(420, 100);
+            this.panelCompressionRatio.TabIndex = 5;
+            // 
+            // lblCompressionRatioTitle
+            // 
+            this.lblCompressionRatioTitle.AutoSize = false;
+            this.lblCompressionRatioTitle.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.lblCompressionRatioTitle.ForeColor = System.Drawing.Color.White;
+            this.lblCompressionRatioTitle.Location = new System.Drawing.Point(20, 10);
+            this.lblCompressionRatioTitle.Name = "lblCompressionRatioTitle";
+            this.lblCompressionRatioTitle.Size = new System.Drawing.Size(380, 25);
+            this.lblCompressionRatioTitle.TabIndex = 0;
+            this.lblCompressionRatioTitle.Text = "";
+            // 
+            // progressBarCompression
+            // 
+            this.progressBarCompression.ForeColor = System.Drawing.Color.FromArgb(16, 185, 129);
+            this.progressBarCompression.Location = new System.Drawing.Point(20, 45);
+            this.progressBarCompression.Name = "progressBarCompression";
+            this.progressBarCompression.Size = new System.Drawing.Size(380, 20);
+            this.progressBarCompression.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
+            this.progressBarCompression.TabIndex = 1;
+            // 
+            // panelProcessingSpeed
+            // 
+            this.panelProcessingSpeed.BackColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            this.panelProcessingSpeed.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panelProcessingSpeed.Controls.Add(this.lblProcessingSpeedTitle);
+            this.panelProcessingSpeed.Controls.Add(this.progressBarSpeed);
+            this.panelProcessingSpeed.Location = new System.Drawing.Point(740, 570);
+            this.panelProcessingSpeed.Name = "panelProcessingSpeed";
+            this.panelProcessingSpeed.Size = new System.Drawing.Size(420, 100);
+            this.panelProcessingSpeed.TabIndex = 6;
+            // 
+            // lblProcessingSpeedTitle
+            // 
+            this.lblProcessingSpeedTitle.AutoSize = false;
+            this.lblProcessingSpeedTitle.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.lblProcessingSpeedTitle.ForeColor = System.Drawing.Color.White;
+            this.lblProcessingSpeedTitle.Location = new System.Drawing.Point(20, 10);
+            this.lblProcessingSpeedTitle.Name = "lblProcessingSpeedTitle";
+            this.lblProcessingSpeedTitle.Size = new System.Drawing.Size(380, 25);
+            this.lblProcessingSpeedTitle.TabIndex = 0;
+            this.lblProcessingSpeedTitle.Text = "";
+            // 
+            // progressBarSpeed
+            // 
+            this.progressBarSpeed.ForeColor = System.Drawing.Color.FromArgb(16, 185, 129);
+            this.progressBarSpeed.Location = new System.Drawing.Point(20, 45);
+            this.progressBarSpeed.Name = "progressBarSpeed";
+            this.progressBarSpeed.Size = new System.Drawing.Size(380, 20);
+            this.progressBarSpeed.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
+            this.progressBarSpeed.TabIndex = 1;
             // 
             // Form1
             // 
-            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(35)))));
-            this.ClientSize = new System.Drawing.Size(900, 680);
-            this.Controls.Add(this.infoPanel);
-            this.Controls.Add(this.wavePanel);
-            this.Controls.Add(this.spectrumPanel);
-            this.Controls.Add(this.controlsPanel);
-            this.Controls.Add(this.dropPanel);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
+            this.BackColor = System.Drawing.Color.FromArgb(10, 22, 40);
+            this.ClientSize = new System.Drawing.Size(1410, 780);
+            this.Controls.Add(this.panelMain);
+            this.Controls.Add(this.panelSidebar);
             this.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "SoundShrink Pro - ضغط الملفات الصوتية";
-            this.controlsPanel.ResumeLayout(false);
-            this.controlsPanel.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.progressBar)).EndInit();
-            this.dropPanel.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.wavePictureBox)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.spectrumPictureBox)).EndInit();
+            this.Text = "Audio Compression";
+            ((System.ComponentModel.ISupportInitialize)(this.numQuantLevels)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numDeltaStep)).EndInit();
+            this.panelSidebar.ResumeLayout(false);
+            this.panelMain.ResumeLayout(false);
+            this.panelFileLoad.ResumeLayout(false);
+            this.pnlTimeDisplay.ResumeLayout(false);
+            this.pnlTimeDisplay.PerformLayout();
+            this.pnlPlayerControls.ResumeLayout(false);
+            this.panelAudioProperties.ResumeLayout(false);
+            this.panelOperationReport.ResumeLayout(false);
+            this.panelCompressionRatio.ResumeLayout(false);
+            this.panelProcessingSpeed.ResumeLayout(false);
             this.ResumeLayout(false);
-
         }
 
-        // ✅ أضف هذه التعريفات في نهاية partial class Form1 في Form1.Designer.cs:
-
-        private System.Windows.Forms.MenuStrip menuStrip1;
-        private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem changeFileToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem removeFileToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem compressToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem nonlinearQuantizationToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem dpcmToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem predictiveCodingToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem deltaModulationToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem adaptiveDeltaModulationToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem saveCompressedToolStripMenuItem;
-
-
-        private System.Windows.Forms.ToolStripMenuItem decompressToolStripMenuItem;
         #endregion
     }
 }
