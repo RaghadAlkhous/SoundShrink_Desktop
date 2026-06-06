@@ -6,149 +6,138 @@ using SoundShrink_Desktop.Models;
 
 namespace SoundShrink_Desktop
 {
+    public class DoubleBufferedPanel : Panel
+    {
+        public DoubleBufferedPanel()
+        {
+            // ✅ تفعيل Double Buffering
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer |
+                         ControlStyles.AllPaintingInWmPaint |
+                         ControlStyles.UserPaint |
+                         ControlStyles.ResizeRedraw, true);
+            this.UpdateStyles();
+
+            this.BackColor = Color.FromArgb(20, 20, 25);
+        }
+    }
+
     public partial class CompressionProgressForm : Form
     {
-        private ProgressBar _progressBar;
-        private Label _lblProgress;
-        private Panel _lblRatio;        // ✅ Panel وليس Label
-        private Panel _lblSpeed;        // ✅ Panel وليس Label
-        private Panel _lblElapsedTime;  // ✅ Panel وليس Label
-        private Panel _lblRemaining;    // ✅ Panel وليس Label
-        private Button _btnCancel;
-        private Panel _chartPanel;
         private Timer _chartTimer;
-
         private System.Collections.Generic.List<float> _ratioHistory;
         private System.Collections.Generic.List<float> _speedHistory;
         private const int MaxChartPoints = 100;
 
         public event EventHandler CancelRequested;
 
-        public CompressionProgressForm()  // ✅ Constructor واحد فقط
+        public CompressionProgressForm()
         {
             InitializeComponent();
+
             _ratioHistory = new System.Collections.Generic.List<float>();
             _speedHistory = new System.Collections.Generic.List<float>();
-            _chartTimer = new Timer { Interval = 100 };
+
+            _chartTimer = new Timer { Interval = 150 };
             _chartTimer.Tick += ChartTimer_Tick;
             _chartTimer.Start();
+
+            InitializeInfoLabels();
         }
 
-        private void InitializeComponent()
+        private void InitializeInfoLabels()
         {
-            this.Text = "مراقبة عملية الضغط";
-            this.Size = new Size(700, 500);
-            this.BackColor = Color.FromArgb(30, 30, 35);
-            this.Font = new Font("Segoe UI", 9F);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
+            // ✅ استخدام ألوان متناسقة مع المشروع
+            Color titleColor = Color.FromArgb(148, 163, 184); // رمادي مزرق (مثل lblSampleRateLabel)
+            Color valueColor = Color.FromArgb(16, 185, 129);  // أخضر النجاح (مثل progressBarMain)
 
-            _progressBar = new ProgressBar
+            // Ratio panel
+            var lblRatioTitle = new Label
             {
-                Dock = DockStyle.Top,
-                Height = 30,
-                Style = ProgressBarStyle.Continuous,
-                ForeColor = Color.FromArgb(0, 255, 128)
-            };
-            this.Controls.Add(_progressBar);
-
-            _lblProgress = new Label
-            {
-                Text = "0%",
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 14F, FontStyle.Bold),
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Dock = DockStyle.Top,
-                Height = 40
-            };
-            this.Controls.Add(_lblProgress);
-
-            _chartPanel = new Panel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(20, 20, 25),
-                Margin = new Padding(10)
-            };
-            _chartPanel.Paint += ChartPanel_Paint;
-            this.Controls.Add(_chartPanel);
-
-            var infoPanel = new TableLayoutPanel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 200,
-                ColumnCount = 2,
-                RowCount = 3,
-                BackColor = Color.FromArgb(40, 40, 45),
-                Padding = new Padding(10)
-            };
-
-            infoPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            infoPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            infoPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 33F));
-            infoPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 33F));
-            infoPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 33F));
-
-            _lblRatio = CreateInfoLabel("نسبة الضغط:", "0:1");
-            _lblSpeed = CreateInfoLabel("سرعة المعالجة:", "0 MB/s");
-            _lblElapsedTime = CreateInfoLabel("الوقت المنقضي:", "00:00");
-            _lblRemaining = CreateInfoLabel("الوقت المتبقي:", "--:--");
-
-            infoPanel.Controls.Add(_lblRatio, 0, 0);
-            infoPanel.Controls.Add(_lblSpeed, 1, 0);
-            infoPanel.Controls.Add(_lblElapsedTime, 0, 1);
-            infoPanel.Controls.Add(_lblRemaining, 1, 1);
-
-            _btnCancel = new Button
-            {
-                Text = "❌ إلغاء العملية",
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(220, 53, 69),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
-                FlatStyle = FlatStyle.Flat,
-                Cursor = Cursors.Hand
-            };
-            _btnCancel.FlatAppearance.BorderSize = 0;
-            _btnCancel.Click += (s, e) => {
-                if (MessageBox.Show("هل تريد إلغاء عملية الضغط؟", "تأكيد الإلغاء",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                {
-                    CancelRequested?.Invoke(this, EventArgs.Empty);
-                }
-            };
-            infoPanel.Controls.Add(_btnCancel, 0, 2);
-            infoPanel.SetColumnSpan(_btnCancel, 2);
-
-            this.Controls.Add(infoPanel);
-        }
-
-        private Panel CreateInfoLabel(string title, string value)
-        {
-            var panel = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
-
-            var lblTitle = new Label
-            {
-                Text = title,
-                ForeColor = Color.Gray,
+                Text = "نسبة الضغط:",
+                ForeColor = titleColor,
                 Font = new Font("Segoe UI", 9F),
                 AutoSize = true,
-                Location = new Point(10, 5)
+                Location = new Point(10, 10)
             };
-
-            var lblValue = new Label
+            var lblRatioValue = new Label
             {
-                Text = value,
-                ForeColor = Color.FromArgb(0, 191, 255),
+                Text = "0:1",
+                ForeColor = valueColor,
                 Font = new Font("Segoe UI", 11F, FontStyle.Bold),
                 AutoSize = true,
                 Location = new Point(10, 25)
             };
+            _lblRatio.Controls.Add(lblRatioTitle);
+            _lblRatio.Controls.Add(lblRatioValue);
 
-            panel.Controls.Add(lblTitle);
-            panel.Controls.Add(lblValue);
-            return panel;
+            // Speed panel
+            var lblSpeedTitle = new Label
+            {
+                Text = "سرعة المعالجة:",
+                ForeColor = titleColor,
+                Font = new Font("Segoe UI", 9F),
+                AutoSize = true,
+                Location = new Point(10, 5)
+            };
+            var lblSpeedValue = new Label
+            {
+                Text = "0 MB/s",
+                ForeColor = valueColor,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                AutoSize = true,
+                Location = new Point(10, 25)
+            };
+            _lblSpeed.Controls.Add(lblSpeedTitle);
+            _lblSpeed.Controls.Add(lblSpeedValue);
+
+            // Elapsed time panel
+            var lblElapsedTitle = new Label
+            {
+                Text = "الوقت المنقضي:",
+                ForeColor = titleColor,
+                Font = new Font("Segoe UI", 9F),
+                AutoSize = true,
+                Location = new Point(10, 5)
+            };
+            var lblElapsedValue = new Label
+            {
+                Text = "00:00",
+                ForeColor = valueColor,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                AutoSize = true,
+                Location = new Point(10, 25)
+            };
+            _lblElapsedTime.Controls.Add(lblElapsedTitle);
+            _lblElapsedTime.Controls.Add(lblElapsedValue);
+
+            // Remaining time panel
+            var lblRemainingTitle = new Label
+            {
+                Text = "الوقت المتبقي:",
+                ForeColor = titleColor,
+                Font = new Font("Segoe UI", 9F),
+                AutoSize = true,
+                Location = new Point(10, 5)
+            };
+            var lblRemainingValue = new Label
+            {
+                Text = "--:--",
+                ForeColor = valueColor,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                AutoSize = true,
+                Location = new Point(10, 25)
+            };
+            _lblRemaining.Controls.Add(lblRemainingTitle);
+            _lblRemaining.Controls.Add(lblRemainingValue);
+        }
+
+        private void BtnCancel_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("هل تريد إلغاء عملية الضغط؟", "تأكيد الإلغاء",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                CancelRequested?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         public void UpdateProgress(CompressionMonitor monitor)
@@ -159,90 +148,172 @@ namespace SoundShrink_Desktop
                 return;
             }
 
-            _progressBar.Value = Math.Min(100, monitor.ProgressPercentage);
-            _lblProgress.Text = $"{monitor.ProgressPercentage:F1}%";
+            _chartPanel.SuspendLayout();
 
-            // تحديث النصوص داخل Panels
-            if (_lblRatio.Controls.Count > 1)
-                _lblRatio.Controls[1].Text = $"{monitor.CompressionRatio:F2}:1";
-            if (_lblSpeed.Controls.Count > 1)
-                _lblSpeed.Controls[1].Text = $"{monitor.ProcessingSpeedMBps:F2} MB/s";
-            if (_lblElapsedTime.Controls.Count > 1)
-                _lblElapsedTime.Controls[1].Text = monitor.ElapsedTime.ToString(@"mm\:ss");
-            if (_lblRemaining.Controls.Count > 1)
-                _lblRemaining.Controls[1].Text = monitor.EstimatedRemaining.ToString(@"mm\:ss");
-
-            _ratioHistory.Add((float)monitor.CompressionRatio);
-            _speedHistory.Add((float)monitor.ProcessingSpeedMBps);
-
-            if (_ratioHistory.Count > MaxChartPoints)
+            try
             {
-                _ratioHistory.RemoveAt(0);
-                _speedHistory.RemoveAt(0);
-            }
+                _progressBar.Value = Math.Min(100, monitor.ProgressPercentage);
+                _lblProgress.Text = $"{monitor.ProgressPercentage:F1}%";
 
-            _chartPanel.Invalidate();
+                if (_lblRatio.Controls.Count > 1)
+                    _lblRatio.Controls[1].Text = $"{monitor.CompressionRatio:F2}:1";
+                if (_lblSpeed.Controls.Count > 1)
+                    _lblSpeed.Controls[1].Text = $"{monitor.ProcessingSpeedMBps:F2} MB/s";
+                if (_lblElapsedTime.Controls.Count > 1)
+                    _lblElapsedTime.Controls[1].Text = monitor.ElapsedTime.ToString(@"mm\:ss");
+                if (_lblRemaining.Controls.Count > 1)
+                    _lblRemaining.Controls[1].Text = monitor.EstimatedRemaining.ToString(@"mm\:ss");
+
+                _ratioHistory.Add((float)monitor.CompressionRatio);
+                _speedHistory.Add((float)monitor.ProcessingSpeedMBps);
+
+                if (_ratioHistory.Count > MaxChartPoints)
+                {
+                    _ratioHistory.RemoveAt(0);
+                    _speedHistory.RemoveAt(0);
+                }
+            }
+            finally
+            {
+                _chartPanel.ResumeLayout();
+            }
         }
 
         private void ChartPanel_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+            g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
 
             int width = _chartPanel.Width;
             int height = _chartPanel.Height;
-            int chartHeight = height / 2;
+            int leftMargin = 60;
+            int rightMargin = 60;
+            int topMargin = 30;
+            int bottomMargin = 40;
+            int chartWidth = width - leftMargin - rightMargin;
+            int chartHeight = height - topMargin - bottomMargin;
 
-            // ✅ تمرير جميع المعاملات بما فيها lineColor و fillColor
-            DrawChart(g, _ratioHistory, "نسبة الضغط", 0, chartHeight - 10, width, chartHeight - 10,
-                Color.FromArgb(0, 255, 128), Color.FromArgb(0, 100, 255));
+            // ✅ ألوان متناسقة مع المشروع
+            Color bgColor = Color.FromArgb(17, 24, 39);           // مثل Sidebar
+            Color gridColor = Color.FromArgb(60, 70, 90);         // شبكة رمادية مزرقّة
+            Color axisColor = Color.FromArgb(100, 110, 130);      // محاور رمادية مزرقّة
+            Color ratioLineColor = Color.FromArgb(16, 185, 129);  // أخضر النجاح
+            Color speedLineColor = Color.FromArgb(255, 193, 7);   // أصفر
+            Color titleColor = Color.White;                       // أبيض
+            Color waitingColor = Color.FromArgb(100, 110, 130);   // رمادي مزرق
 
-            DrawChart(g, _speedHistory, "السرعة (MB/s)", 0, chartHeight + 10, width, chartHeight - 10,
-                Color.FromArgb(255, 193, 7), Color.FromArgb(255, 100, 0));
-        }
-
-        private void DrawChart(Graphics g, System.Collections.Generic.List<float> data,
-            string title, int x, int y, int width, int height, Color lineColor, Color fillColor)
-        {
-            if (data.Count < 2) return;
-
-            using (Font font = new Font("Segoe UI", 9F, FontStyle.Bold))
+            // Draw background
+            using (Brush bgBrush = new SolidBrush(bgColor))
             {
-                g.DrawString(title, font, Brushes.White, x, y - 20);
+                g.FillRectangle(bgBrush, 0, 0, width, height);
             }
 
-            using (Brush bgBrush = new SolidBrush(Color.FromArgb(30, 30, 35)))
+            // Draw grid
+            using (Pen gridPen = new Pen(gridColor, 1))
             {
-                g.FillRectangle(bgBrush, x, y, width, height);
-            }
-
-            using (Pen pen = new Pen(lineColor, 2))
-            {
-                var points = new PointF[data.Count];
-                float maxVal = data.Count > 0 ? data.Max() : 1;
-
-                for (int i = 0; i < data.Count; i++)
+                for (int i = 0; i <= 5; i++)
                 {
-                    float normalizedVal = data[i] / maxVal;
-                    points[i] = new PointF(
-                        x + (i * (float)width / (data.Count - 1)),
-                        y + height - (normalizedVal * (height - 10)) - 5
-                    );
+                    int y = topMargin + (i * chartHeight / 5);
+                    g.DrawLine(gridPen, leftMargin, y, width - rightMargin, y);
                 }
 
-                if (points.Length > 1)
-                    g.DrawLines(pen, points);
+                for (int i = 0; i <= 10; i++)
+                {
+                    int x = leftMargin + (i * chartWidth / 10);
+                    g.DrawLine(gridPen, x, topMargin, x, height - bottomMargin);
+                }
             }
 
-            using (Pen borderPen = new Pen(Color.FromArgb(60, 60, 70), 1))
+            // Draw axes
+            using (Pen axisPen = new Pen(axisColor, 2))
             {
-                g.DrawRectangle(borderPen, x, y, width, height);
+                g.DrawLine(axisPen, leftMargin, topMargin, leftMargin, height - bottomMargin);
+                g.DrawLine(axisPen, width - rightMargin, topMargin, width - rightMargin, height - bottomMargin);
+                g.DrawLine(axisPen, leftMargin, height - bottomMargin, width - rightMargin, height - bottomMargin);
+            }
+
+            // Draw data if available
+            if (_ratioHistory.Count > 1 && _speedHistory.Count > 1)
+            {
+                float maxRatio = _ratioHistory.Max();
+                float maxSpeed = _speedHistory.Max();
+
+                if (maxRatio < 0.001f) maxRatio = 1.0f;
+                if (maxSpeed < 0.001f) maxSpeed = 1.0f;
+
+                // Draw ratio line (green - same as success color)
+                using (Pen ratioPen = new Pen(ratioLineColor, 3))
+                {
+                    var points = new PointF[_ratioHistory.Count];
+                    for (int i = 0; i < _ratioHistory.Count; i++)
+                    {
+                        float x = leftMargin + (i * (float)chartWidth / Math.Max(1, _ratioHistory.Count - 1));
+                        float normalizedRatio = _ratioHistory[i] / maxRatio;
+                        float y = (height - bottomMargin) - (normalizedRatio * chartHeight);
+                        points[i] = new PointF(x, y);
+                    }
+                    if (points.Length > 1)
+                        g.DrawLines(ratioPen, points);
+                }
+
+                // Draw speed line (yellow)
+                using (Pen speedPen = new Pen(speedLineColor, 3))
+                {
+                    var points = new PointF[_speedHistory.Count];
+                    for (int i = 0; i < _speedHistory.Count; i++)
+                    {
+                        float x = leftMargin + (i * (float)chartWidth / Math.Max(1, _speedHistory.Count - 1));
+                        float normalizedSpeed = _speedHistory[i] / maxSpeed;
+                        float y = (height - bottomMargin) - (normalizedSpeed * chartHeight);
+                        points[i] = new PointF(x, y);
+                    }
+                    if (points.Length > 1)
+                        g.DrawLines(speedPen, points);
+                }
+
+                // Draw axis labels
+                using (Font axisFont = new Font("Segoe UI", 9F, FontStyle.Bold))
+                {
+                    using (Brush leftBrush = new SolidBrush(ratioLineColor))
+                    {
+                        g.DrawString("نسبة الضغط", axisFont, leftBrush, 5, topMargin);
+                        g.DrawString($"{maxRatio:F2}", axisFont, leftBrush, 5, height - bottomMargin - 20);
+                        g.DrawString("1.0", axisFont, leftBrush, 5, topMargin + 10);
+                    }
+
+                    using (Brush rightBrush = new SolidBrush(speedLineColor))
+                    {
+                        g.DrawString("السرعة MB/s", axisFont, rightBrush, width - 55, topMargin);
+                        g.DrawString($"{maxSpeed:F2}", axisFont, rightBrush, width - 55, height - bottomMargin - 20);
+                    }
+                }
+            }
+            else
+            {
+                using (Font font = new Font("Segoe UI", 12F, FontStyle.Italic))
+                using (Brush brush = new SolidBrush(waitingColor))
+                {
+                    g.DrawString("في انتظار البيانات...", font, brush,
+                        width / 2 - 100, height / 2);
+                }
+            }
+
+            // Draw title
+            using (Font titleFont = new Font("Segoe UI", 11F, FontStyle.Bold))
+            using (Brush titleBrush = new SolidBrush(titleColor))
+            {
+                g.DrawString("📊 Compression Analysis", titleFont, titleBrush, width / 2 - 100, 5);
             }
         }
 
         private void ChartTimer_Tick(object sender, EventArgs e)
         {
-            _chartPanel.Invalidate();
+            if (_chartPanel.Visible && (_ratioHistory.Count > 0 || _speedHistory.Count > 0))
+            {
+                _chartPanel.Invalidate();
+            }
         }
 
         public void SetCancelled()
@@ -255,7 +326,18 @@ namespace SoundShrink_Desktop
 
             _btnCancel.Text = "✅ تم الإلغاء";
             _btnCancel.Enabled = false;
-            _btnCancel.BackColor = Color.Gray;
+            _btnCancel.BackColor = Color.FromArgb(100, 110, 130); // رمادي مزرق
+        }
+
+        public new void Close()
+        {
+            for (int i = 100; i >= 0; i -= 10)
+            {
+                this.Opacity = i / 100.0;
+                System.Threading.Thread.Sleep(20);
+            }
+
+            base.Close();
         }
     }
 }

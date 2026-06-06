@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using SoundShrink_Desktop.Models;
 using SoundShrink_Desktop.Services;
 using SoundShrink_Desktop.Algorithms;
-using SoundShrink_Desktop.Analyzers;
 using System.Threading.Tasks;
+using System.Linq;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -18,12 +18,8 @@ namespace SoundShrink_Desktop
         [DllImport("Gdi32.dll", EntryPoint = "CreateRoundRectRgn")]
         private static extern IntPtr CreateRoundRectRgn
         (
-            int nLeftRect,
-            int nTopRect,
-            int nRightRect,
-            int nBottomRect,
-            int nWidthEllipse,
-            int nHeightEllipse
+            int nLeftRect, int nTopRect, int nRightRect, int nBottomRect,
+            int nWidthEllipse, int nHeightEllipse
         );
 
         public static void ApplyRoundedBorder(this Control control, int radius)
@@ -33,7 +29,6 @@ namespace SoundShrink_Desktop
             control.Region = region;
         }
     }
-
 
     public partial class Form1 : Form
     {
@@ -52,6 +47,20 @@ namespace SoundShrink_Desktop
         private string _decompressedTempFile;
         private bool _isDecompressedMode = false;
         private bool _isUserSeeking = false;
+        private bool _isCompressionCancelled = false;
+        private CompressionProgressForm _progressForm;
+        private Timer _compressionMonitorTimer;
+        private DateTime _compressionStartTime;
+        private long _totalBytesToProcess;
+        private long _processedBytes;
+
+        private volatile int _realProgress;
+
+        private List<float> _savedRatioHistory = new List<float>();
+        private List<float> _savedSpeedHistory = new List<float>();
+        private string _savedAlgorithmName = "";
+        private TimeSpan _savedTotalTime = TimeSpan.Zero;
+        private double _savedFinalRatio = 0;
 
         public Form1()
         {
@@ -61,12 +70,11 @@ namespace SoundShrink_Desktop
             SetupTimers();
             EnableDragDrop();
             InitializeEmptyState();
-
             ApplyRoundedCorners();
         }
+
         private void ApplyRoundedCorners()
         {
-            // للـ Panel
             panelFileInfo.ApplyRoundedBorder(20);
             panelFileLoad.ApplyRoundedBorder(20);
             panelAudioProperties.ApplyRoundedBorder(20);
@@ -74,21 +82,18 @@ namespace SoundShrink_Desktop
             panelCompressionRatio.ApplyRoundedBorder(20);
             panelProcessingSpeed.ApplyRoundedBorder(20);
 
-            // للأزرار
             btnChooseFile.ApplyRoundedBorder(10);
-            btnChangeFile.ApplyRoundedBorder(10);
             btnCompressFile.ApplyRoundedBorder(10);
             btnDecompress.ApplyRoundedBorder(10);
             btnResetWorkspace.ApplyRoundedBorder(10);
-            btnPrevious.ApplyRoundedBorder(20); // دائري تماماً
-            btnPlayPause.ApplyRoundedBorder(20); // دائري تماماً
-            btnNext.ApplyRoundedBorder(20); // دائري تماماً
+            btnPrevious.ApplyRoundedBorder(20);
+            btnPlayPause.ApplyRoundedBorder(25);
+            btnNext.ApplyRoundedBorder(20);
         }
 
         private void InitializeEmptyState()
         {
             lblFileLoadText.Text = "Drag or select an audio file";
-           
             lblFileName.Text = "";
             lblPlaybackStatus.Text = "";
             progressBarMain.Value = 0;
@@ -115,8 +120,18 @@ namespace SoundShrink_Desktop
         {
             cmbAlgorithm.SelectedIndex = 0;
             cmbSampleRate.SelectedIndex = 0;
+
+            // ✅ تحديد القيمة الافتراضية لـ QuantizationLevels = 256
+            if (cmbQuantLevels.Items.Count > 0)
+                cmbQuantLevels.SelectedIndex = 4; // 256 هو العنصر الخامس (index 4)
+
+            // ✅ تحديد القيمة الافتراضية لـ BitsPerSample = 16
+            if (cmbBitsPerSampleComp.Items.Count > 0)
+                cmbBitsPerSampleComp.SelectedIndex = 3; // 16 هو العنصر الرابع (index 3)
+
             UpdateButtonStates(false);
             SetupModernControls();
+            UpdateAlgorithmSettings();
         }
 
         private void SetupModernControls()
@@ -125,12 +140,95 @@ namespace SoundShrink_Desktop
             btnPlayPause.Click += BtnPlayPause_Click;
             btnNext.Click += BtnNext_Click;
 
+            // ✅ ربط حدث تغيير الخوارزمية
+            cmbAlgorithm.SelectedIndexChanged += CmbAlgorithm_SelectedIndexChanged;
+
             btnPlayPause.Enabled = false;
             btnPrevious.Enabled = false;
             btnNext.Enabled = false;
 
             progressBarMain.MouseDown += ProgressBarMain_MouseDown;
             progressBarMain.MouseUp += ProgressBarMain_MouseUp;
+        }
+
+        private void UpdateAlgorithmSettings()
+        {
+            // إخفاء جميع الحقول الخاصة بالخوارزميات
+            lblQuantLevels.Visible = false;
+            cmbQuantLevels.Visible = false;
+            lblDeltaStep.Visible = false;
+            numDeltaStep.Visible = false;
+            lblBitsPerSampleComp.Visible = false;
+            cmbBitsPerSampleComp.Visible = false;
+            lblPredictionCoeff.Visible = false;
+            trkStepSize.Visible = false;
+            lblStepSizeValue.Visible = false;
+            lblInitialStep.Visible = false;
+            trkInitialStep.Visible = false;          // ✅ تغيير: numInitialStep → trkInitialStep
+            lblInitialStepValue.Visible = false;     // ✅ إضافة
+            lblStepMultiplier.Visible = false;
+            trkStepMultiplier.Visible = false;       // ✅ تغيير: numStepMultiplier → trkStepMultiplier
+            lblStepMultiplierValue.Visible = false;  // ✅ إضافة
+
+            string algoName = cmbAlgorithm.SelectedItem?.ToString() ?? "";
+
+            switch (algoName)
+            {
+                case "Nonlinear Quantization":
+                    lblQuantLevels.Visible = true;
+                    cmbQuantLevels.Visible = true;
+                    if (cmbQuantLevels.SelectedIndex == -1)
+                        cmbQuantLevels.SelectedIndex = 4;
+                    break;
+
+                case "DPCM":
+                    lblBitsPerSampleComp.Visible = true;
+                    cmbBitsPerSampleComp.Visible = true;
+                    if (cmbBitsPerSampleComp.SelectedIndex == -1)
+                        cmbBitsPerSampleComp.SelectedIndex = 3;
+                    break;
+
+                case "Predictive Differential Coding":
+                    lblPredictionCoeff.Visible = true;
+                    trkStepSize.Visible = true;
+                    lblStepSizeValue.Visible = true;
+                    if (trkStepSize.Value == trkStepSize.Minimum)
+                        trkStepSize.Value = 10;
+                    lblStepSizeValue.Text = (trkStepSize.Value / 100.0).ToString("F3");
+                    break;
+
+                case "Delta Modulation":
+                    lblDeltaStep.Visible = true;
+                    trkStepSize.Visible = true;
+                    lblStepSizeValue.Visible = true;
+                    if (trkStepSize.Value == trkStepSize.Minimum)
+                        trkStepSize.Value = 10;
+                    lblStepSizeValue.Text = (trkStepSize.Value / 100.0).ToString("F3");
+                    break;
+
+                case "Adaptive Delta Modulation":
+                    lblInitialStep.Visible = true;
+                    trkInitialStep.Visible = true;          // ✅ تغيير
+                    lblInitialStepValue.Visible = true;     // ✅ إضافة
+                    lblStepMultiplier.Visible = true;
+                    trkStepMultiplier.Visible = true;       // ✅ تغيير
+                    lblStepMultiplierValue.Visible = true;  // ✅ إضافة
+
+                    // ✅ التأكد من القيم الافتراضية
+                    if (trkInitialStep.Value == trkInitialStep.Minimum)
+                        trkInitialStep.Value = 10; // 0.10
+                    lblInitialStepValue.Text = (trkInitialStep.Value / 100.0).ToString("F3");
+
+                    if (trkStepMultiplier.Value == trkStepMultiplier.Minimum)
+                        trkStepMultiplier.Value = 15; // 1.50
+                    lblStepMultiplierValue.Text = (trkStepMultiplier.Value / 10.0).ToString("F2");
+                    break;
+            }
+        }
+
+        private void CmbAlgorithm_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateAlgorithmSettings();
         }
 
         private void SetupTimers()
@@ -152,9 +250,8 @@ namespace SoundShrink_Desktop
             btnPlayPause.Enabled = hasFile;
             btnPrevious.Enabled = hasFile;
             btnNext.Enabled = hasFile;
-
         }
-        
+
         private bool IsAudioFile(string path)
         {
             string ext = Path.GetExtension(path).ToLower();
@@ -179,29 +276,59 @@ namespace SoundShrink_Desktop
             {
                 Cursor = Cursors.WaitCursor;
 
-                if (_currentFile != null)
-                    UnloadCurrentFile();
+                string tempFileToKeep = _isDecompressedMode ? _decompressedTempFile : null;
 
-                _originalFilePath = Path.Combine(
-                    Path.GetTempPath(),
-                    $"SoundShrink_Original_{DateTime.Now:yyyyMMdd_HHmmss}{Path.GetExtension(filePath)}"
-                );
-                File.Copy(filePath, _originalFilePath, true);
+                if (_currentFile != null)
+                {
+                    if (_player != null)
+                    {
+                        _player.Stop();
+                        _player.Dispose();
+                        _player = null;
+                    }
+                    _progressTimer?.Stop();
+                    _audioService.CloseReader();
+                    _currentReader = null;
+                    _currentFile = null;
+
+                    if (!string.IsNullOrEmpty(_originalFilePath) && File.Exists(_originalFilePath))
+                    {
+                        if (_originalFilePath != tempFileToKeep)
+                        {
+                            File.Delete(_originalFilePath);
+                        }
+                    }
+                    _originalFilePath = null;
+                }
+
+                if (_isDecompressedMode && !string.IsNullOrEmpty(tempFileToKeep) && tempFileToKeep == filePath)
+                {
+                    _originalFilePath = filePath;
+                }
+                else
+                {
+                    _originalFilePath = Path.Combine(
+                        Path.GetTempPath(),
+                        $"SoundShrink_Original_{DateTime.Now:yyyyMMdd_HHmmss}{Path.GetExtension(filePath)}"
+                    );
+                    File.Copy(filePath, _originalFilePath, true);
+                }
 
                 _currentFile = _audioService.LoadAudio(filePath);
                 UpdateAudioProperties();
 
-                lblFileLoadText.Text = "Loaded";  // ✅ تأكد من وجود النص
-                lblFileName.Text = _currentFile.FileName;  // ✅ اسم الملف
+                lblFileLoadText.Text = "Loaded";
+                lblFileName.Text = _currentFile.FileName;
                 progressBarMain.Value = 0;
 
-                this.Text = $"Audio Compression Lab - {_currentFile.FileName}";
+                this.Text = _isDecompressedMode
+                    ? $"🎵 Decompressed - {Path.GetFileName(filePath)}"
+                    : $"Audio Compression Lab - {_currentFile.FileName}";
 
                 lblCurrentTime.Text = "0:00";
                 lblRemainingTime.Text = "-" + FormatTime(_currentFile.Duration);
 
                 UpdateButtonStates(true);
-                _isDecompressedMode = false;
             }
             catch (Exception ex)
             {
@@ -212,6 +339,7 @@ namespace SoundShrink_Desktop
                 Cursor = Cursors.Default;
             }
         }
+
         private void UpdateAudioProperties()
         {
             lblFileSizeValue.Text = $"{_currentFile.FileSizeBytes / (1024.0 * 1024.0):F2} MB";
@@ -244,7 +372,7 @@ namespace SoundShrink_Desktop
 
             progressBarMain.Value = 0;
             lblPlaybackStatus.Text = "";
-            lblFileLoadText.Text = "Drag or select an audio file";  // ✅ إعادة الرسالة الافتراضية
+            lblFileLoadText.Text = "Drag or select an audio file";
             lblFileName.Text = "";
 
             lblFileSizeValue.Text = "";
@@ -264,7 +392,7 @@ namespace SoundShrink_Desktop
             lblCurrentTime.Text = "0:00";
             lblRemainingTime.Text = "-0:00";
 
-            this.Text = "Audio Compression Lab - Multimedia 2026";
+            this.Text = "Audio Compression";
             UpdateButtonStates(false);
             _compressedData = null;
             _lastCompressionResult = null;
@@ -272,8 +400,10 @@ namespace SoundShrink_Desktop
             _isDecompressedMode = false;
 
             btnPlayPause.Text = "▶";
-        }
 
+            CleanupTempFiles();
+        }
+        
         #region Playback
 
         private void PlayAudio()
@@ -288,7 +418,6 @@ namespace SoundShrink_Desktop
                 reader.Position = 0;
                 _currentReader = reader;
 
-                // ✅ تهيئة المشغل مباشرة بالـ Reader بدون BufferedWaveProvider
                 _player?.Dispose();
                 _player = new WaveOutEvent();
                 _player.Init(reader);
@@ -354,9 +483,6 @@ namespace SoundShrink_Desktop
             }
         }
 
-        /// <summary>
-        /// ✅ الدالة الرئيسية للتقديم/التأخير - فورية بدون إعادة تهيئة
-        /// </summary>
         private void SeekToPosition(TimeSpan targetTime)
         {
             if (_currentFile == null || _player == null) return;
@@ -366,23 +492,17 @@ namespace SoundShrink_Desktop
 
             bool wasPlaying = _player.PlaybackState == PlaybackState.Playing;
 
-            // ✅ 1. إيقاف التشغيل مؤقتاً لضمان مزامنة الـ buffer الداخلي لـ WaveOutEvent
             _player.Pause();
-
-            // ✅ 2. تغيير موضع القراءة في الملف مباشرة
             reader.CurrentTime = targetTime;
 
-            // ✅ 3. تحديث أوقات التشغيل
             _playbackStartTime = DateTime.Now;
             _playbackOffset = targetTime;
 
-            // ✅ 4. استئناف التشغيل إذا كان يعمل قبل الـ Seek
             if (wasPlaying)
             {
                 _player.Play();
             }
 
-            // ✅ 5. تحديث الواجهة
             progressBarMain.Value = (int)((targetTime.TotalSeconds / _currentFile.Duration.TotalSeconds) * 100);
             lblCurrentTime.Text = FormatTime(targetTime);
 
@@ -404,7 +524,6 @@ namespace SoundShrink_Desktop
 
         private void BtnPrevious_Click(object sender, EventArgs e)
         {
-            // ✅ الرجوع 10 ثواني للخلف
             if (_currentFile != null && _player != null)
             {
                 TimeSpan currentTime = _playbackOffset;
@@ -421,7 +540,6 @@ namespace SoundShrink_Desktop
 
         private void BtnNext_Click(object sender, EventArgs e)
         {
-            // ✅ التقديم 10 ثواني للأمام
             if (_currentFile != null && _player != null)
             {
                 TimeSpan currentTime = _playbackOffset;
@@ -506,65 +624,115 @@ namespace SoundShrink_Desktop
             return bytes;
         }
 
-        private void CompressAudio(ICompressionAlgorithm algorithm)
+        private int GetSelectedSampleRate()
         {
-            if (_currentFile == null)
+            string sampleRateText = cmbSampleRate.SelectedItem?.ToString() ?? "Original";
+            if (sampleRateText == "Original")
+                return _currentFile?.SampleRate ?? 44100;
+
+            if (int.TryParse(sampleRateText, out int rate))
+                return rate;
+
+            return _currentFile?.SampleRate ?? 44100;
+        }
+
+
+        private string GenerateReportText(CompressionResult result, string algorithmName)
+        {
+            string algoName = cmbAlgorithm.SelectedItem?.ToString() ?? "";
+            string sampleRateText = cmbSampleRate.SelectedItem?.ToString() ?? "Original";
+            int actualSampleRate = GetSelectedSampleRate();
+
+            string settingsText = $"SampleRate: {actualSampleRate}\n";
+
+            switch (algoName)
             {
-                MessageBox.Show("Please choose an audio file first.", "Warning",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                case "Nonlinear Quantization":
+                    string quantValue = cmbQuantLevels.SelectedItem?.ToString() ?? "256";
+                    settingsText += $"QuantizationLevels: {quantValue}\n" +
+                                   $"MuLawCoefficient: 255";
+                    break;
+
+                case "DPCM":
+                    string bitsValue = cmbBitsPerSampleComp.SelectedItem?.ToString() ?? "16";
+                    int bits;
+                    if (!int.TryParse(bitsValue, out bits))
+                        bits = 16;
+
+                    settingsText += $"BitsPerSample: {bits}\n" +
+                                   $"QuantStep: {(2.0 / Math.Pow(2, bits)):F6}";
+                    break;
+                case "Predictive Differential Coding":
+                    double stepSizeValue = trkStepSize.Value / 100.0;  // ✅ قراءة من TrackBar
+                    settingsText += $"StepSize: {stepSizeValue:F3}\n" +
+                                   $"PredictionCoefficient: 0.90";
+                    break;
+                case "Delta Modulation":
+                    double dmStepSize = trkStepSize.Value / 100.0;  // ✅ قراءة من TrackBar
+                    settingsText += $"StepSize: {dmStepSize:F3}";
+                    break;
+                case "Adaptive Delta Modulation":
+                    double admInitialStep = trkInitialStep.Value / 100.0;
+                    double admMultiplier = trkStepMultiplier.Value / 10.0;
+                    settingsText += $"InitialStepSize: {admInitialStep:F3}\n" +
+                                   $"StepSizeMultiplier: {admMultiplier:F2}\n" +
+                                   $"MinStep: 0.005\n" +
+                                   $"MaxStep: 0.5";
+                    break;
             }
 
-            try
-            {
-                float[] samples = LoadAudioSamples(_currentFile.FilePath);
-                byte[] audioData = FloatsToBytes(samples);
+            double savingPercentage = (1.0 - (double)result.CompressedSize / result.OriginalSize) * 100.0;
 
-                _compressedData = algorithm.Compress(
-                    audioData,
-                    _currentFile.SampleRate,
-                    _currentFile.BitsPerSample,
-                    _currentFile.Channels);
+            string report = $"OriginalSize: {result.OriginalSize}\n" +
+                           $"CompressedSize: {result.CompressedSize}\n" +
+                           $"SizeSaving: {savingPercentage:F2}%\n" +
+                           $"CompressionRatio: {result.CompressionRatio:F2}x\n" +
+                           $"ElapsedTime: {result.ProcessingTime.TotalSeconds:F2} seconds\n" +
+                           $"Algorithm: {algorithmName}\n" +
+                           $"Channels: {_currentFile?.Channels ?? 1}\n\n" +
+                           $"Settings:\n{settingsText}";
 
-                _currentAlgorithm = algorithm;
-                _lastCompressionResult = algorithm.GetCompressionStats();
-
-                UpdateOperationReport(_lastCompressionResult, algorithm.AlgorithmName);
-
-                MessageBox.Show($"Compression completed!\nRatio: {_lastCompressionResult.CompressionRatio:F2}:1",
-                    "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Compression error: {ex.Message}", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            return report;
         }
 
         private void UpdateOperationReport(CompressionResult result, string algorithmName)
         {
-            string report = $"Original Size: {result.OriginalSize / (1024.0 * 1024.0):F2} MB\n" +
-                           $"Compressed Size: {result.CompressedSize / (1024.0 * 1024.0):F2} MB\n" +
-                           $"Size Saving: {((1 - result.CompressionRatio) * 100):F2}%\n" +
-                           $"Compression Ratio: {result.CompressionRatio:F2}x\n" +
-                           $"Elapsed Time: {result.ProcessingTime.TotalSeconds:F2} seconds\n" +
-                           $"Algorithm: {algorithmName}\n" +
-                           $"Settings: Sample Rate={_currentFile.SampleRate} Hz, " +
-                           $"Quantization Levels={(int)numQuantLevels.Value}, " +
-                           $"Delta Step={(int)numDeltaStep.Value}";
+            string report = GenerateReportText(result, algorithmName);
 
             lblReportContent.Text = report;
             lblCompressionRatioTitle.Text = $"Compression Ratio: {result.CompressionRatio:F2}x";
-            lblProcessingSpeedTitle.Text = $"Processing Speed: {result.ProcessingTime.TotalSeconds:F2}s";
+            lblProcessingSpeedTitle.Text = $"Processing Time: {result.ProcessingTime.TotalSeconds:F2}s";
 
             if (progressBarCompression.Maximum > 0)
-                progressBarCompression.Value = (int)(result.CompressionRatio * 100);
+                progressBarCompression.Value = Math.Min(100, (int)(result.CompressionRatio * 100));
         }
 
         #endregion
 
         #region Event Handlers
 
+        private void btnShowChart_Click(object sender, EventArgs e)
+        {
+            if (_savedRatioHistory.Count < 2)
+            {
+                MessageBox.Show(
+                    "Not enough data to display the chart.\n\nPlease perform a compression first.",
+                    "No Data",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var chartForm = new ChartViewerForm(
+                _savedRatioHistory,
+                _savedSpeedHistory,
+                _savedAlgorithmName,
+                _savedTotalTime,
+                _savedFinalRatio))
+            {
+                chartForm.ShowDialog(this);
+            }
+        }
         private void btnChooseFile_Click(object sender, EventArgs e)
         {
             OpenFileBrowser();
@@ -579,73 +747,475 @@ namespace SoundShrink_Desktop
                 return;
             }
 
-            ICompressionAlgorithm algorithm = null;
             string algoName = cmbAlgorithm.SelectedItem?.ToString() ?? "";
 
-            var settings = new CompressionSettings
+            // ✅ إنشاء الخوارزمية مباشرة من إعدادات الشريط الجانبي
+            ICompressionAlgorithm algorithm = CreateAlgorithmFromSidebar(algoName);
+
+            if (algorithm == null)
             {
-                QuantizationLevels = (int)numQuantLevels.Value,
-                StepSize = (double)numDeltaStep.Value
-            };
+                MessageBox.Show("Invalid algorithm selected.", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // ✅ بدء الضغط مع عرض نافذة التقدم
+            CompressAudioWithProgress(algorithm);
+        }
+
+        private ICompressionAlgorithm CreateAlgorithmFromSidebar(string algoName)
+        {
+            var settings = GetCurrentCompressionSettings();
 
             switch (algoName)
             {
                 case "Nonlinear Quantization":
-                    algorithm = new NonlinearQuantization(settings);
-                    break;
+                    return new NonlinearQuantization(settings);
                 case "DPCM":
-                    algorithm = new DPCM(settings);
-                    break;
+                    return new DPCM(settings);
                 case "Predictive Differential Coding":
-                    algorithm = new PredictiveDifferentialCoding(settings);
-                    break;
+                    return new PredictiveDifferentialCoding(settings);
                 case "Delta Modulation":
-                    algorithm = new DeltaModulation(settings);
-                    break;
+                    return new DeltaModulation(settings);
                 case "Adaptive Delta Modulation":
-                    algorithm = new AdaptiveDeltaModulation(settings);
-                    break;
+                    return new AdaptiveDeltaModulation(settings);
+                default:
+                    return null;
+            }
+        }
+
+        private void CompressAudioWithProgress(ICompressionAlgorithm algorithm)
+        {
+            if (_currentFile == null)
+            {
+                MessageBox.Show("Please choose an audio file first.", "Warning",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
 
-            if (algorithm != null)
-                CompressAudio(algorithm);
+            try
+            {
+                Cursor = Cursors.WaitCursor;
+                float[] samples = LoadAudioSamples(_currentFile.FilePath);
+                byte[] audioData = FloatsToBytes(samples);
+                int selectedSampleRate = GetSelectedSampleRate();
+
+                _isCompressionCancelled = false;
+                _totalBytesToProcess = audioData.Length;
+                _processedBytes = 0;
+                _compressionStartTime = DateTime.Now;
+                _lastCompressionResult = null;
+                _realProgress = 0;
+
+                // ✅ مسح البيانات القديمة
+                _savedRatioHistory.Clear();
+                _savedSpeedHistory.Clear();
+                _savedAlgorithmName = algorithm.AlgorithmName;
+
+                _progressForm = new CompressionProgressForm();
+                _progressForm.CancelRequested += (s, e) => _isCompressionCancelled = true;
+
+                _compressionMonitorTimer = new Timer { Interval = 50 };
+                _compressionMonitorTimer.Tick += CompressionMonitorTimer_Tick;
+                _compressionMonitorTimer.Start();
+
+                _progressForm.Show(this);
+
+                // ✅ تنفيذ الضغط في Thread منفصل
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    try
+                    {
+                        if (_isCompressionCancelled) return;
+
+                        // ✅ إنشاء Progress Handler بشكل صحيح
+                        var progressReporter = new Progress<int>(value =>
+                        {
+                            _realProgress = value;
+                            _processedBytes = (long)(_totalBytesToProcess * value / 100.0);
+                        });
+
+                        // ✅ الضغط الفعلي
+                        _compressedData = algorithm.Compress(
+                            audioData,
+                            selectedSampleRate,
+                            _currentFile.BitsPerSample,
+                            _currentFile.Channels,
+                            progressReporter);
+
+                        _currentAlgorithm = algorithm;
+                        _lastCompressionResult = algorithm.GetCompressionStats();
+
+                        // ✅ حفظ النسبة النهائية والوقت
+                        _savedFinalRatio = _lastCompressionResult?.CompressionRatio ?? 1.0;
+                        _savedTotalTime = _lastCompressionResult?.ProcessingTime ?? TimeSpan.Zero;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (!_isCompressionCancelled)
+                        {
+                            this.Invoke(new Action(() =>
+                            {
+                                MessageBox.Show($"Compression error: {ex.Message}", "Error",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }));
+                        }
+                    }
+                    finally
+                    {
+                        // ✅ حد أدنى 2 ثانية للعرض
+                        var elapsed = DateTime.Now - _compressionStartTime;
+                        if (elapsed.TotalMilliseconds < 2000)
+                        {
+                            System.Threading.Thread.Sleep(2000 - (int)elapsed.TotalMilliseconds);
+                        }
+
+                        this.Invoke(new Action(() =>
+                        {
+                            _compressionMonitorTimer?.Stop();
+                            _compressionMonitorTimer?.Dispose();
+                            _compressionMonitorTimer = null;
+
+                            if (_progressForm != null)
+                            {
+                                _progressForm.Close();
+                                _progressForm.Dispose();
+                                _progressForm = null;
+                            }
+
+                            Cursor = Cursors.Default;
+
+                            if (!_isCompressionCancelled && _lastCompressionResult != null)
+                            {
+                                // ✅ تفعيل زر عرض الرسم البياني
+                                btnShowChart.Enabled = true;
+                                ShowSaveFileDialog(algorithm);
+                            }
+                            else if (_isCompressionCancelled)
+                            {
+                                btnShowChart.Enabled = false;
+                                MessageBox.Show("Compression process was cancelled.", "Cancelled",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                        }));
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Cursor = Cursors.Default;
+                _compressionMonitorTimer?.Stop();
+                _progressForm?.Close();
+                MessageBox.Show($"Compression error: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void CompressionMonitorTimer_Tick(object sender, EventArgs e)
+        {
+            if (_progressForm == null) return;
+
+            var elapsed = DateTime.Now - _compressionStartTime;
+
+            int progressPercentage = _realProgress;
+            double currentRatio = 1.0;
+
+            if (_lastCompressionResult != null)
+            {
+                progressPercentage = 100;
+                currentRatio = _lastCompressionResult.CompressionRatio;
+            }
+            else
+            {
+                if (progressPercentage > 0 && progressPercentage < 100)
+                {
+                    currentRatio = 1.0 + (progressPercentage / 100.0);
+                }
+            }
+
+            double speedMBps = 0;
+            if (elapsed.TotalSeconds > 0.1)
+            {
+                speedMBps = (_processedBytes / 1024.0 / 1024.0) / elapsed.TotalSeconds;
+            }
+
+            TimeSpan estimatedRemaining = TimeSpan.Zero;
+            if (progressPercentage > 0 && progressPercentage < 100 && speedMBps > 0)
+            {
+                double remainingBytes = _totalBytesToProcess - _processedBytes;
+                double remainingMB = remainingBytes / 1024.0 / 1024.0;
+                estimatedRemaining = TimeSpan.FromSeconds(remainingMB / speedMBps);
+            }
+
+            _savedRatioHistory.Add((float)currentRatio);
+            _savedSpeedHistory.Add((float)speedMBps);
+
+            if (_savedRatioHistory.Count > 200)
+            {
+                _savedRatioHistory.RemoveAt(0);
+                _savedSpeedHistory.RemoveAt(0);
+            }
+
+            var monitor = new CompressionMonitor
+            {
+                ProgressPercentage = progressPercentage,
+                CompressionRatio = currentRatio,
+                ProcessingSpeedMBps = speedMBps,
+                ProcessedBytes = _processedBytes,
+                TotalBytes = _totalBytesToProcess,
+                ElapsedTime = elapsed,
+                EstimatedRemaining = estimatedRemaining,
+                IsCancelled = _isCompressionCancelled
+            };
+
+            _progressForm.UpdateProgress(monitor);
+
+            if (_isCompressionCancelled)
+            {
+                _compressionMonitorTimer.Stop();
+                _progressForm.SetCancelled();
+            }
+        }
+        private void ShowSaveFileDialog(ICompressionAlgorithm algorithm)
+        {
+            using (var saveDialog = new SaveFileDialog())
+            {
+                saveDialog.Filter = "Compressed Audio Files (*.compressed)|*.compressed";
+                saveDialog.Title = "Save Compressed Audio File";
+                saveDialog.FileName = Path.GetFileNameWithoutExtension(_currentFile.FileName) + ".compressed";
+
+                if (saveDialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        File.WriteAllBytes(saveDialog.FileName, _compressedData);
+
+                        string reportText = GenerateReportText(_lastCompressionResult, algorithm.AlgorithmName);
+                        string infoFilePath = saveDialog.FileName + ".info";
+                        File.WriteAllText(infoFilePath, reportText);
+
+                        UpdateOperationReport(_lastCompressionResult, algorithm.AlgorithmName);
+
+                        MessageBox.Show(
+                            $"Compression completed and saved successfully!\n\n" +
+                            $"Compressed File: {Path.GetFileName(saveDialog.FileName)}\n" +
+                            $"Info File: {Path.GetFileName(infoFilePath)}\n\n" +
+                            $"Compression Ratio: {_lastCompressionResult.CompressionRatio:F2}x",
+                            "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error saving file: {ex.Message}", "Error",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+                else
+                {
+                    UpdateOperationReport(_lastCompressionResult, algorithm.AlgorithmName);
+                }
+            }
         }
 
         private void btnDecompress_Click(object sender, EventArgs e)
         {
             var openDialog = new OpenFileDialog
             {
-                Filter = "Compressed Audio Files|*.compressed|All Files|*.*",
-                Title = "Choose Compressed File"
+                Filter = "Compressed Audio Files (*.compressed)|*.compressed|All Files (*.*)|*.*",
+                Title = "Choose a compressed file to decompress"
             };
 
             if (openDialog.ShowDialog() != DialogResult.OK) return;
 
+            string compressedFilePath = openDialog.FileName;
+            string infoFilePath = compressedFilePath + ".info";
+
             try
             {
-                string compressedFile = openDialog.FileName;
-                string infoFile = compressedFile + ".info";
+                Cursor = Cursors.WaitCursor;
 
-                if (!File.Exists(infoFile))
+                if (!File.Exists(infoFilePath))
                 {
-                    MessageBox.Show("Info file not found.", "Error",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Cursor = Cursors.Default;
+                    MessageBox.Show(
+                        $"❌ The info file (.info) was not found!\n\n" +
+                        $"Expected: {Path.GetFileName(infoFilePath)}\n\n" +
+                        $"Cannot decompress without algorithm information.",
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
-                byte[] compressedData = File.ReadAllBytes(compressedFile);
-                MessageBox.Show("Decompression completed.", "Success",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Dictionary<string, string> info;
+                try
+                {
+                    info = ReadInfoFile(infoFilePath);
+                }
+                catch (Exception ex)
+                {
+                    Cursor = Cursors.Default;
+                    MessageBox.Show($"❌ Error reading info file:\n{ex.Message}",
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                if (!info.ContainsKey("Algorithm"))
+                {
+                    Cursor = Cursors.Default;
+                    MessageBox.Show("❌ The info file does not contain the algorithm name!",
+                        "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+                string algorithmName = info["Algorithm"];
+
+                int originalSampleRate = 44100;
+                int originalChannels = 1;
+                int originalBitsPerSample = 16;
+
+                if (info.ContainsKey("SampleRate") && int.TryParse(info["SampleRate"], out int sr))
+                    originalSampleRate = sr;
+
+                if (info.ContainsKey("Channels") && int.TryParse(info["Channels"], out int ch))
+                    originalChannels = ch;
+
+                if (info.ContainsKey("BitsPerSample") && int.TryParse(info["BitsPerSample"], out int bps))
+                    originalBitsPerSample = bps;
+
+                // ✅ قراءة الإعدادات الأصلية من الملف
+                var originalSettings = ReadAlgorithmSettings(info);
+
+                Cursor = Cursors.Default;
+
+                // ✅ عرض نافذة الخيارات
+                using (var settingsForm = new DecompressionSettingsForm(
+                    algorithmName,
+                    originalSampleRate,
+                    originalChannels,
+                    originalBitsPerSample,
+                    originalSettings))
+                {
+                    if (settingsForm.ShowDialog() != DialogResult.OK)
+                        return;
+
+                    Cursor = Cursors.WaitCursor;
+
+                    // ✅ الحصول على الإعدادات النهائية
+                    CompressionSettings finalSettings = settingsForm.AlgorithmSettings;
+
+                    // ✅ إنشاء الخوارزمية مع الإعدادات الصحيحة
+                    ICompressionAlgorithm algorithm = CreateAlgorithmWithSettings(algorithmName, finalSettings);
+
+                    byte[] compressedData = File.ReadAllBytes(compressedFilePath);
+
+                    // ✅ فك الضغط باستخدام الإعدادات من النافذة
+                    byte[] decompressedData = algorithm.Decompress(
+                        compressedData,
+                        settingsForm.SampleRate,
+                        settingsForm.BitsPerSample,
+                        settingsForm.Channels);
+
+                    int sampleCount = decompressedData.Length / 4;
+                    float[] samples = new float[sampleCount];
+                    Buffer.BlockCopy(decompressedData, 0, samples, 0, decompressedData.Length);
+
+                    samples = NormalizeSamples(samples);
+
+                    string tempWavPath = SaveAsTempWav(
+                        samples,
+                        settingsForm.SampleRate,
+                        settingsForm.Channels,
+                        settingsForm.BitsPerSample);
+
+                    if (!File.Exists(tempWavPath))
+                    {
+                        Cursor = Cursors.Default;
+                        MessageBox.Show("❌ Failed to create temporary file!",
+                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    try
+                    {
+                        HandleFileLoad(tempWavPath);
+                        _decompressedTempFile = tempWavPath;
+                        _isDecompressedMode = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Cursor = Cursors.Default;
+                        MessageBox.Show($"❌ Failed to load decompressed file:\n\n{ex.Message}",
+                            "Load Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                        if (File.Exists(tempWavPath))
+                        {
+                            try { File.Delete(tempWavPath); } catch { }
+                        }
+                        return;
+                    }
+
+                    this.Text = $"🎵 Decompressed - {Path.GetFileName(compressedFilePath)}";
+
+                    Cursor = Cursors.Default;
+                    MessageBox.Show(
+                        $"✅ Decompression completed successfully!\n\n" +
+                        $" Algorithm: {algorithmName}\n" +
+                        $" Settings: {(settingsForm.UseOriginalSettings ? "Original" : "Default")}\n" +
+                        $" File: {Path.GetFileName(tempWavPath)}\n\n" +
+                        $"You can now play the decompressed file.",
+                        "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    try
+                    {
+                        PlayAudio();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(
+                            $"✅ Decompression was successful, but a playback error occurred:\n\n{ex.Message}",
+                            "Playback Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Decompression error: {ex.Message}", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Cursor = Cursors.Default;
+                MessageBox.Show(
+                    $"❌ Error during decompression:\n\n{ex.Message}",
+                    "Decompression Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
             }
         }
 
+        private string GetSettingsSummary(string algorithmName, CompressionSettings settings, int sampleRate, int channels)
+        {
+            string summary = $"Sample Rate: {sampleRate} Hz\nChannels: {(channels == 1 ? "Mono" : "Stereo")}\n";
+
+            switch (algorithmName)
+            {
+                case "Nonlinear Quantization":
+                    summary += $"Quantization Levels: {settings.QuantizationLevels}";
+                    break;
+                case "DPCM":
+                    summary += $"Bits Per Sample: {settings.BitsPerSample}";
+                    break;
+                case "Predictive Differential Coding":
+                    summary += $"Step Size: {settings.StepSize:F3}";  // ✅ تغيير
+                    break;
+                case "Delta Modulation":
+                    summary += $"Step Size: {settings.StepSize:F3}";
+                    break;
+                case "Adaptive Delta Modulation":
+                    summary += $"Initial Step: {settings.InitialStepSize:F3}\n" +
+                              $"Step Multiplier: {settings.StepSizeMultiplier:F2}";
+                    break;
+            }
+
+            return summary;
+        }
         private void btnResetWorkspace_Click(object sender, EventArgs e)
         {
+            // ✅ 1. إيقاف التشغيل الحالي
             if (_player != null)
             {
                 _player.Stop();
@@ -657,14 +1227,15 @@ namespace SoundShrink_Desktop
             _audioService.CloseReader();
             _currentReader = null;
 
+            // ✅ 2. مسح معلومات الملف
             _currentFile = null;
             _isPaused = false;
             _playbackOffset = TimeSpan.Zero;
 
+            // ✅ 3. إعادة تعيين واجهة المستخدم
             progressBarMain.Value = 0;
             lblPlaybackStatus.Text = "";
             lblFileLoadText.Text = "Drag or select an audio file";
-            
             lblFileName.Text = "";
 
             lblFileSizeValue.Text = "";
@@ -684,7 +1255,7 @@ namespace SoundShrink_Desktop
             lblCurrentTime.Text = "0:00";
             lblRemainingTime.Text = "-0:00";
 
-            this.Text = "Audio Compression Lab - Multimedia 2026";
+            this.Text = "Audio Compression";
             UpdateButtonStates(false);
             _compressedData = null;
             _lastCompressionResult = null;
@@ -692,7 +1263,72 @@ namespace SoundShrink_Desktop
             _isDecompressedMode = false;
 
             btnPlayPause.Text = "▶";
+
+            btnShowChart.Enabled = false;
+            _savedRatioHistory.Clear();
+            _savedSpeedHistory.Clear();
+
+            // ✅✅✅ 4. إعادة تعيين إعدادات الخوارزميات إلى القيم الافتراضية ✅✅✅
+            ResetAlgorithmSettings();
+
             CleanupTempFiles();
+        }
+
+        private void ResetAlgorithmSettings()
+        {
+            try
+            {
+                // ✅ إعادة تعيين الخوارزمية إلى Nonlinear Quantization
+                if (cmbAlgorithm != null && cmbAlgorithm.Items.Count > 0)
+                    cmbAlgorithm.SelectedIndex = 0;
+
+                // ✅ إعادة تعيين Sample Rate إلى Original
+                if (cmbSampleRate != null && cmbSampleRate.Items.Count > 0)
+                    cmbSampleRate.SelectedIndex = 0;
+
+                // ✅ إعادة تعيين Quantization Levels إلى 256 (index 4)
+                if (cmbQuantLevels != null && cmbQuantLevels.Items.Count > 0)
+                    cmbQuantLevels.SelectedIndex = 4;
+
+                // ✅ إعادة تعيين Bits Per Sample إلى 16 (index 3)
+                if (cmbBitsPerSampleComp != null && cmbBitsPerSampleComp.Items.Count > 0)
+                    cmbBitsPerSampleComp.SelectedIndex = 3;
+
+                // ✅ إعادة تعيين Step Size (TrackBar) إلى 0.10 (value 10)
+                if (trkStepSize != null)
+                {
+                    trkStepSize.Value = 10;
+                    lblStepSizeValue.Text = "0.100";
+                }
+
+                // ✅ إعادة تعيين Initial Step Size إلى 0.10 (باستخدام TrackBar)
+                if (trkInitialStep != null)
+                {
+                    trkInitialStep.Value = 10; // 0.10
+                    lblInitialStepValue.Text = "0.100";
+                }
+
+                // ✅ إعادة تعيين Step Size Multiplier إلى 1.50 (باستخدام TrackBar)
+                if (trkStepMultiplier != null)
+                {
+                    trkStepMultiplier.Value = 15; // 1.50
+                    lblStepMultiplierValue.Text = "1.50";
+                }
+
+                // ✅ إعادة تعيين Delta Step إلى 0.040
+                if (numDeltaStep != null)
+                {
+                    decimal deltaStepValue = 0.040m;
+                    if (deltaStepValue >= numDeltaStep.Minimum && deltaStepValue <= numDeltaStep.Maximum)
+                        numDeltaStep.Value = deltaStepValue;
+                    else
+                        numDeltaStep.Value = numDeltaStep.Minimum;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in ResetAlgorithmSettings: {ex.Message}");
+            }
         }
 
         private void Form1_DragEnter(object sender, DragEventArgs e)
@@ -723,15 +1359,25 @@ namespace SoundShrink_Desktop
             base.OnFormClosing(e);
         }
 
+
+        #region Decompression
+
         private void CleanupTempFiles()
         {
             try
             {
+                // ✅ حذف النسخة الأصلية المحفوظة (إذا لم تكن نفس الملف المفكوك)
                 if (!string.IsNullOrEmpty(_originalFilePath) && File.Exists(_originalFilePath))
                 {
-                    File.Delete(_originalFilePath);
+                    // تأكد من عدم حذف الملف المفكوك بالخطأ
+                    if (_originalFilePath != _decompressedTempFile)
+                    {
+                        File.Delete(_originalFilePath);
+                    }
                     _originalFilePath = null;
                 }
+
+                // ✅ حذف ملف WAV المؤقت بعد فك الضغط
                 if (!string.IsNullOrEmpty(_decompressedTempFile) && File.Exists(_decompressedTempFile))
                 {
                     File.Delete(_decompressedTempFile);
@@ -743,6 +1389,283 @@ namespace SoundShrink_Desktop
                 Console.WriteLine($"Error cleaning temp files: {ex.Message}");
             }
         }
+        /// <summary>
+        /// قراءة ملف .info واستخراج معلومات الضغط كـ Dictionary
+        /// </summary>
+        private Dictionary<string, string> ReadInfoFile(string infoFilePath)
+        {
+            var info = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            if (!File.Exists(infoFilePath))
+                throw new FileNotFoundException("Info file (.info) not found", infoFilePath);
+
+            foreach (var line in File.ReadAllLines(infoFilePath))
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                // تجاهل الأسطر التي تبدأ بـ # (تعليقات)
+                if (line.TrimStart().StartsWith("#")) continue;
+
+                var parts = line.Split(new[] { ':' }, 2);
+                if (parts.Length == 2)
+                {
+                    string key = parts[0].Trim();
+                    string value = parts[1].Trim();
+
+                    // تجنب تكرار المفاتيح (خذ أول قيمة فقط)
+                    if (!info.ContainsKey(key))
+                        info[key] = value;
+                }
+            }
+
+            return info;
+        }
+        private CompressionSettings GetCurrentCompressionSettings()
+        {
+            // ✅ قراءة قيمة QuantizationLevels من ComboBox
+            int quantLevels = 256;
+            if (cmbQuantLevels.SelectedItem != null &&
+                int.TryParse(cmbQuantLevels.SelectedItem.ToString(), out int parsedQuant))
+            {
+                quantLevels = parsedQuant;
+            }
+
+            // ✅ قراءة قيمة BitsPerSample من ComboBox
+            int bitsPerSample = 16;
+            if (cmbBitsPerSampleComp.SelectedItem != null &&
+                int.TryParse(cmbBitsPerSampleComp.SelectedItem.ToString(), out int parsedBits))
+            {
+                bitsPerSample = parsedBits;
+            }
+
+            // ✅ قراءة قيمة StepSize من TrackBar
+            double stepSize = trkStepSize.Value / 100.0;
+
+            // ✅ قراءة InitialStepSize من TrackBar (بدلاً من NumericUpDown)
+            double initialStepSize = trkInitialStep.Value / 100.0;
+
+            // ✅ قراءة StepSizeMultiplier من TrackBar (بدلاً من NumericUpDown)
+            double stepMultiplier = trkStepMultiplier.Value / 10.0;
+
+            return new CompressionSettings
+            {
+                QuantizationLevels = quantLevels,
+                BitsPerSample = bitsPerSample,
+                PredictionCoefficient = 0.9,
+                StepSize = stepSize,
+                InitialStepSize = initialStepSize,
+                StepSizeMultiplier = stepMultiplier
+            };
+        }
+
+        private CompressionSettings ReadAlgorithmSettings(Dictionary<string, string> info)
+        {
+            var settings = new CompressionSettings();
+
+            try
+            {
+                if (info.ContainsKey("QuantizationLevels"))
+                {
+                    string value = info["QuantizationLevels"].Trim();
+                    if (int.TryParse(value, out int levels))
+                        settings.QuantizationLevels = levels;
+                }
+
+                if (info.ContainsKey("BitsPerSample"))
+                {
+                    string value = info["BitsPerSample"].Trim();
+                    if (int.TryParse(value, out int bits))
+                        settings.BitsPerSample = bits;
+                }
+
+                if (info.ContainsKey("PredictionCoefficient"))
+                {
+                    string value = info["PredictionCoefficient"].Trim();
+                    if (double.TryParse(value,
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out double coeff))
+                    {
+                        settings.PredictionCoefficient = coeff;
+                    }
+                }
+
+                if (info.ContainsKey("StepSize"))
+                {
+                    string value = info["StepSize"].Trim();
+                    if (double.TryParse(value,
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out double step))
+                    {
+                        settings.StepSize = step;
+                    }
+                }
+
+                if (info.ContainsKey("InitialStepSize"))
+                {
+                    string value = info["InitialStepSize"].Trim();
+                    if (double.TryParse(value,
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out double initStep))
+                    {
+                        settings.InitialStepSize = initStep;
+                    }
+                }
+
+                if (info.ContainsKey("StepSizeMultiplier"))
+                {
+                    string value = info["StepSizeMultiplier"].Trim();
+                    if (double.TryParse(value,
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out double multiplier))
+                    {
+                        settings.StepSizeMultiplier = multiplier;
+                    }
+                }
+
+                if (info.ContainsKey("SampleRate"))
+                {
+                    string value = info["SampleRate"].Trim().Replace("Hz", "").Trim();
+                    if (int.TryParse(value, out int sampleRate))
+                        settings.SampleRate = sampleRate;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading algorithm settings: {ex.Message}");
+            }
+
+            return settings;
+        }
+        private ICompressionAlgorithm CreateAlgorithmByName(string algorithmName)
+        {
+            // التحقق من اسم الخوارزمية باستخدام Contains لدعم الأسماء الكاملة
+            if (algorithmName.Contains("Nonlinear"))
+                return new NonlinearQuantization();
+            else if (algorithmName.Contains("DPCM") || algorithmName.Contains("Differential PCM"))
+                return new DPCM();
+            else if (algorithmName.Contains("Predictive"))
+                return new PredictiveDifferentialCoding();
+            else if (algorithmName.Contains("Adaptive Delta"))
+                return new AdaptiveDeltaModulation();
+            else if (algorithmName.Contains("Delta Modulation"))
+                return new DeltaModulation();
+            else
+                throw new NotSupportedException($"Unsupported algorithm: {algorithmName}");
+        }
+
+        /// <summary>
+        /// إنشاء كائن الخوارزمية مع إعدادات مخصصة من ملف .info
+        /// </summary>
+        private ICompressionAlgorithm CreateAlgorithmWithSettings(string algorithmName, CompressionSettings settings)
+        {
+            if (algorithmName.Contains("Nonlinear"))
+                return new NonlinearQuantization(settings);
+            else if (algorithmName.Contains("DPCM") || algorithmName.Contains("Differential PCM"))
+                return new DPCM(settings);
+            else if (algorithmName.Contains("Predictive"))
+                return new PredictiveDifferentialCoding(settings);
+            else if (algorithmName.Contains("Adaptive Delta"))
+                return new AdaptiveDeltaModulation(settings);
+            else if (algorithmName.Contains("Delta Modulation"))
+                return new DeltaModulation(settings);
+            else
+                throw new NotSupportedException($"Unsupported algorithm: {algorithmName}");
+        }
+
+        private string SaveAsTempWav(float[] samples, int sampleRate, int channels, int bitsPerSample)
+        {
+            // ✅ تطبيع العينات قبل الحفظ
+            samples = NormalizeSamples(samples);
+
+            // إنشاء مسار مؤقت فريد
+            string tempPath = Path.Combine(
+                Path.GetTempPath(),
+                $"SoundShrink_Decompressed_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.wav"
+            );
+
+            // ✅ إذا كان Stereo، تأكد من أن عدد العينات زوجي
+            if (channels == 2)
+            {
+                if (samples.Length % 2 != 0)
+                {
+                    float[] adjusted = new float[samples.Length - 1];
+                    Array.Copy(samples, adjusted, adjusted.Length);
+                    samples = adjusted;
+                }
+            }
+
+            // إنشاء WaveFormat (IEEE Float 32-bit)
+            var waveFormat = NAudio.Wave.WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channels);
+
+            // كتابة الملف باستخدام NAudio
+            using (var writer = new NAudio.Wave.WaveFileWriter(tempPath, waveFormat))
+            {
+                writer.WriteSamples(samples, 0, samples.Length);
+            }
+
+            return tempPath;
+        }
+
+        private float[] NormalizeSamples(float[] samples)
+        {
+            if (samples == null || samples.Length == 0) return samples;
+
+            // إيجاد أقصى قيمة مطلقة
+            float maxAbs = 0;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                float abs = Math.Abs(samples[i]);
+                if (abs > maxAbs) maxAbs = abs;
+            }
+
+            // إذا كانت القيم صغيرة جداً، لا حاجة للتطبيع
+            if (maxAbs < 0.001f) return samples;
+
+            // إذا كانت القيم خارج النطاق، نقوم بالتطبيع
+            if (maxAbs > 1.0f)
+            {
+                float scale = 0.95f / maxAbs; // 0.95 لتجنب الوصول للحد الأقصى
+                for (int i = 0; i < samples.Length; i++)
+                {
+                    samples[i] *= scale;
+                }
+            }
+            return samples;
+        }
+
+
+        private void trkInitialStep_ValueChanged(object sender, EventArgs e)
+        {
+            if (trkInitialStep != null && lblInitialStepValue != null)
+            {
+                double actualValue = trkInitialStep.Value / 100.0;
+                lblInitialStepValue.Text = actualValue.ToString("F3");
+            }
+        }
+
+        private void trkStepMultiplier_ValueChanged(object sender, EventArgs e)
+        {
+            if (trkStepMultiplier != null && lblStepMultiplierValue != null)
+            {
+                double actualValue = trkStepMultiplier.Value / 10.0;
+                lblStepMultiplierValue.Text = actualValue.ToString("F2");
+            }
+        }
+
+        private void trkStepSize_ValueChanged(object sender, EventArgs e)
+        {
+            if (trkStepSize != null && lblStepSizeValue != null)
+            {
+                double actualValue = trkStepSize.Value / 100.0;
+                lblStepSizeValue.Text = actualValue.ToString("F3");
+            }
+        }
+        #endregion
 
         #endregion
     }

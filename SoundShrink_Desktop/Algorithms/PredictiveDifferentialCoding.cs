@@ -4,42 +4,30 @@ using SoundShrink_Desktop.Models;
 
 namespace SoundShrink_Desktop.Algorithms
 {
-    /// <summary>
-    /// Predictive Differential Coding (PDC) - Academic Implementation
-    /// يستخدم معامل تنبؤ خطي (Linear Prediction) لتقدير العينة التالية، ثم يخزن الخطأ المكمم.
-    /// يجمع بين كفاءة DPCM ودقة التنبؤ الطيفي للإشارات الصوتية المترابطة.
-    /// </summary>
     public class PredictiveDifferentialCoding : ICompressionAlgorithm
     {
         private CompressionResult _result;
         private readonly double _predictionCoeff;
-        private readonly float _quantStep;
+        private readonly float _quantStep;  // ✅ الآن يُقرأ من الإعدادات
 
-        public string AlgorithmName => $"Predictive Differential Coding (PDC) - α={_predictionCoeff:F2}";
+        public string AlgorithmName => $"Predictive Differential Coding (PDC) - StepSize={_quantStep:F3}";
 
-        /// <summary>
-        /// Constructor يقبل إعدادات الضغط من واجهة المستخدم
-        /// </summary>
-        /// <param name="settings">إعدادات الضغط (اختياري - يستخدم القيم الافتراضية إذا لم يتم تمريرها)</param>
         public PredictiveDifferentialCoding(CompressionSettings settings = null)
         {
-            // استخدام الإعدادات الممررة أو القيم الافتراضية
             settings = settings ?? new CompressionSettings();
-
             _predictionCoeff = settings.PredictionCoefficient;
-            _quantStep = 0.01f; // قيمة ثابتة لخطوة التكميم
+
+            // ✅ قراءة StepSize من الإعدادات بدلاً من القيمة الثابتة
+            _quantStep = (float)settings.StepSize;
         }
 
-        /// <summary>
-        /// Constructor قديم يقبل المعاملات مباشرة (للتوافق مع الكود القديم)
-        /// </summary>
-        public PredictiveDifferentialCoding(double predictionCoeff, float quantStep = 0.01f)
+        public PredictiveDifferentialCoding(double predictionCoeff, float quantStep = 0.1f)
         {
             _predictionCoeff = predictionCoeff;
             _quantStep = quantStep;
         }
 
-        public byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels)
+        public byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels, IProgress<int> progress = null)
         {
             var startTime = DateTime.Now;
             long originalSize = audioData.Length;
@@ -61,12 +49,22 @@ namespace SoundShrink_Desktop.Algorithms
                 double predictedValue = previousSample * _predictionCoeff;
                 float error = samples[i] - (float)predictedValue;
 
-                // تكميم الخطأ إلى 16-bit
+                // تكميم الخطأ باستخدام StepSize من الإعدادات
                 short quantizedError = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, (int)(error / _quantStep)));
                 output.AddRange(BitConverter.GetBytes(quantizedError));
 
                 previousSample = samples[i];
+
+                // ✅ إبلاغ التقدم كل 1000 عينة
+                if (progress != null && i % 1000 == 0)
+                {
+                    int percent = (int)((double)i / samples.Length * 100);
+                    progress.Report(percent);
+                }
             }
+
+            // ✅ إبلاغ الاكتمال
+            progress?.Report(100);
 
             _result = new CompressionResult
             {
@@ -94,7 +92,7 @@ namespace SoundShrink_Desktop.Algorithms
             {
                 double predictedValue = previousSample * _predictionCoeff;
                 short quantizedError = BitConverter.ToInt16(compressedData, i);
-                float error = quantizedError * _quantStep; // فك التكميم
+                float error = quantizedError * _quantStep; // ✅ فك التكميم باستخدام نفس StepSize
 
                 float reconstructed = (float)(predictedValue + error);
                 samples.Add(reconstructed);

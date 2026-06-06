@@ -43,7 +43,7 @@ namespace SoundShrink_Desktop
             // === العنوان الرئيسي ===
             var titleLabel = new Label
             {
-                Text = "⚙️ خيارات فك الضغط",
+                Text = " خيارات فك الضغط",
                 ForeColor = Color.FromArgb(0, 191, 255),
                 Font = new Font("Segoe UI", 16F, FontStyle.Bold),
                 AutoSize = false,

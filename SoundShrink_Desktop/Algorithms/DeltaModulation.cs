@@ -4,12 +4,6 @@ using SoundShrink_Desktop.Models;
 
 namespace SoundShrink_Desktop.Algorithms
 {
-    /// <summary>
-    /// Delta Modulation (DM) - Academic Implementation
-    /// خوارزمية ضغط تنبؤية تفقدية تحول كل عينة صوتية إلى بت واحد (1-bit)
-    /// تعتمد على مكامل (Integrator) بخطوة ثابتة للتنبؤ بالقيمة التالية.
-    /// مناسبة جداً للأغراض التعليمية ومقارنة أداء الخوارزميات التنبؤية.
-    /// </summary>
     public class DeltaModulation : ICompressionAlgorithm
     {
         private CompressionResult _result;
@@ -17,50 +11,47 @@ namespace SoundShrink_Desktop.Algorithms
 
         public string AlgorithmName => "Delta Modulation (DM)";
 
-        /// <summary>
-        /// Constructor يقبل إعدادات الضغط من واجهة المستخدم
-        /// </summary>
-        /// <param name="settings">إعدادات الضغط (اختياري - يستخدم القيم الافتراضية إذا لم يتم تمريرها)</param>
         public DeltaModulation(CompressionSettings settings = null)
         {
-            // استخدام الإعدادات الممررة أو القيم الافتراضية
             settings = settings ?? new CompressionSettings();
             _stepSize = settings.StepSize;
         }
 
-        public byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels)
+        public byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels, IProgress<int> progress = null)
         {
             var startTime = DateTime.Now;
             long originalSize = audioData.Length;
 
-            // 1️⃣ تحويل البايتات الخام إلى عينات Float حقيقية
             float[] samples = BytesToFloats(audioData);
-
-            // 2️⃣ إنشاء تيار البتات (1 بت لكل عينة)
             var bits = new List<bool>(samples.Length);
             double predicted = 0.0;
 
-            foreach (float sample in samples)
+            // ✅ تحويل foreach إلى for لدعم إبلاغ التقدم
+            for (int i = 0; i < samples.Length; i++)
             {
-                // مقارنة العينة الحالية مع القيمة المتوقعة
+                float sample = samples[i];
                 bool bit = sample >= predicted;
                 bits.Add(bit);
 
-                // تحديث التنبؤ (Integrator)
                 predicted += bit ? _stepSize : -_stepSize;
+
+                // ✅ إبلاغ التقدم كل 1000 عينة
+                if (progress != null && i % 1000 == 0)
+                {
+                    int percent = (int)((double)i / samples.Length * 100);
+                    progress.Report(percent);
+                }
             }
 
-            // 3️⃣ تحضير هيكل البيانات المضغوطة
-            // Header: 4 بايتات لتخزين عدد العينات
-            // Data: البتات مضغوطة بمعدل 8 بتات في كل بايت
+            // ✅ إبلاغ الاكتمال
+            progress?.Report(100);
+
             int headerSize = 4;
-            int dataSize = (bits.Count + 7) / 8; // تقريب للأعلى
+            int dataSize = (bits.Count + 7) / 8;
             byte[] compressed = new byte[headerSize + dataSize];
 
-            // كتابة عدد العينات في الـ Header
             Buffer.BlockCopy(BitConverter.GetBytes(samples.Length), 0, compressed, 0, 4);
 
-            // تعبئة البتات في المصفوفة (Big-Endian داخل كل بايت)
             for (int i = 0; i < bits.Count; i++)
             {
                 if (bits[i])
@@ -69,7 +60,6 @@ namespace SoundShrink_Desktop.Algorithms
                 }
             }
 
-            // 4️⃣ تسجيل إحصائيات الضغط
             _result = new CompressionResult
             {
                 OriginalSize = originalSize,
@@ -83,25 +73,19 @@ namespace SoundShrink_Desktop.Algorithms
 
         public byte[] Decompress(byte[] compressedData, int sampleRate, int bitsPerSample, int channels)
         {
-            // 1️⃣ قراءة عدد العينات من الـ Header
             int sampleCount = BitConverter.ToInt32(compressedData, 0);
             int headerSize = 4;
 
-            // 2️⃣ إعادة بناء الإشارة من تيار البتات
             float[] reconstructed = new float[sampleCount];
             double current = 0.0;
 
             for (int i = 0; i < sampleCount; i++)
             {
-                // استخراج البت الموافق
                 bool bit = (compressedData[headerSize + (i / 8)] & (1 << (7 - (i % 8)))) != 0;
-
-                // تطبيق خطوة المكامل بنفس الاتجاه
                 current += bit ? _stepSize : -_stepSize;
                 reconstructed[i] = (float)current;
             }
 
-            // 3️⃣ تحويل العينات المعاد بناؤها إلى صيغة Byte متوافقة مع واجهة المشروع
             byte[] output = new byte[reconstructed.Length * 4];
             Buffer.BlockCopy(reconstructed, 0, output, 0, output.Length);
 

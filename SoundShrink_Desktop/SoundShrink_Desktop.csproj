@@ -124,7 +124,6 @@
     <Compile Include="Algorithms\PredictiveDifferentialCoding.cs" />
     <Compile Include="Algorithms\DPCM.cs" />
     <Compile Include="Algorithms\ICompressionAlgorithm.cs" />
-    <Compile Include="Analyzers\AudioAnalyzer.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -132,22 +131,28 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="CompressionProgressForm.cs">
-      <SubType>Form</SubType>
+      <SubType>Component</SubType>
     </Compile>
     <Compile Include="CompressionProgressForm.Designer.cs">
       <DependentUpon>CompressionProgressForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="CompressionSettingsForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="CompressionSettingsForm.Designer.cs">
-      <DependentUpon>CompressionSettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="DecompressionOptionsForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="DecompressionOptionsForm.Designer.cs">
       <DependentUpon>DecompressionOptionsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DecompressionSettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DecompressionSettingsForm.Designer.cs">
+      <DependentUpon>DecompressionSettingsForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ChartViewerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ChartViewerForm.Designer.cs">
+      <DependentUpon>ChartViewerForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Models\AudioFileInfo.cs" />
     <Compile Include="Models\AlgorithmType.cs" />
