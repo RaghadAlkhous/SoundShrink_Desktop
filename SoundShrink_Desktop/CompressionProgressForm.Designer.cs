@@ -40,7 +40,7 @@
             // _progressBar
             // 
             this._progressBar.Dock = System.Windows.Forms.DockStyle.Top;
-            this._progressBar.ForeColor = System.Drawing.Color.FromArgb(16, 185, 129); // ✅ أخضر النجاح
+            this._progressBar.ForeColor = System.Drawing.Color.FromArgb(16, 185, 129);
             this._progressBar.Location = new System.Drawing.Point(0, 0);
             this._progressBar.Name = "_progressBar";
             this._progressBar.Size = new System.Drawing.Size(700, 30);
@@ -65,7 +65,7 @@
             // 
             // _chartPanel
             // 
-            this._chartPanel.BackColor = System.Drawing.Color.FromArgb(17, 24, 39); // ✅ مثل Sidebar
+            this._chartPanel.BackColor = System.Drawing.Color.FromArgb(17, 24, 39);
             this._chartPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this._chartPanel.Location = new System.Drawing.Point(0, 70);
             this._chartPanel.Margin = new System.Windows.Forms.Padding(10);
@@ -78,7 +78,7 @@
             // 
             // infoPanel
             // 
-            this.infoPanel.BackColor = System.Drawing.Color.FromArgb(30, 41, 59); // ✅ مثل باقي Panels
+            this.infoPanel.BackColor = System.Drawing.Color.FromArgb(30, 41, 59); 
             this.infoPanel.ColumnCount = 2;
             this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.infoPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
@@ -136,7 +136,7 @@
             // 
             // _btnCancel
             // 
-            this._btnCancel.BackColor = System.Drawing.Color.FromArgb(239, 68, 68); // ✅ مثل btnResetWorkspace
+            this._btnCancel.BackColor = System.Drawing.Color.FromArgb(239, 68, 68); 
             this._btnCancel.Cursor = System.Windows.Forms.Cursors.Hand;
             this._btnCancel.Dock = System.Windows.Forms.DockStyle.Fill;
             this._btnCancel.FlatAppearance.BorderSize = 0;
@@ -157,7 +157,7 @@
             // CompressionProgressForm
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-            this.BackColor = System.Drawing.Color.FromArgb(10, 22, 40); // ✅ مثل panelMain
+            this.BackColor = System.Drawing.Color.FromArgb(10, 22, 40); 
             this.ClientSize = new System.Drawing.Size(750, 600);
             this.Controls.Add(this._chartPanel);
             this.Controls.Add(this.infoPanel);

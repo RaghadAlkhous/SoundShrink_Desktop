@@ -37,7 +37,7 @@ namespace SoundShrink_Desktop.Algorithms
             {
                 compressed[i] = MuLawEncode(samples[i]);
 
-                // ✅ إبلاغ التقدم كل 1000 عينة
+                
                 if (progress != null && i % 1000 == 0)
                 {
                     int percent = (int)((double)i / samples.Length * 100);
@@ -45,10 +45,9 @@ namespace SoundShrink_Desktop.Algorithms
                 }
             }
 
-            // ✅ إبلاغ الاكتمال
             progress?.Report(100);
 
-            // ✅✅✅ إضافة Header: 4 بايتات لعدد العينات ✅✅✅
+           
             byte[] result = new byte[4 + compressed.Length];
             Buffer.BlockCopy(BitConverter.GetBytes(samples.Length), 0, result, 0, 4);
             Buffer.BlockCopy(compressed, 0, result, 4, compressed.Length);
@@ -56,7 +55,7 @@ namespace SoundShrink_Desktop.Algorithms
             _result = new CompressionResult
             {
                 OriginalSize = originalSize,
-                CompressedSize = result.Length, // ✅ الحجم الكلي (Header + Data)
+                CompressedSize = result.Length, 
                 CompressionRatio = (double)originalSize / result.Length,
                 ProcessingTime = DateTime.Now - startTime
             };
@@ -66,7 +65,6 @@ namespace SoundShrink_Desktop.Algorithms
 
         public byte[] Decompress(byte[] compressedData, int sampleRate, int bitsPerSample, int channels)
         {
-            // ✅✅✅ قراءة Header: عدد العينات ✅✅✅
             int sampleCount = BitConverter.ToInt32(compressedData, 0);
             int headerSize = 4;
 

@@ -10,7 +10,6 @@ namespace SoundShrink_Desktop
     {
         public DoubleBufferedPanel()
         {
-            // ✅ تفعيل Double Buffering
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer |
                          ControlStyles.AllPaintingInWmPaint |
                          ControlStyles.UserPaint |
@@ -46,14 +45,13 @@ namespace SoundShrink_Desktop
 
         private void InitializeInfoLabels()
         {
-            // ✅ استخدام ألوان متناسقة مع المشروع
-            Color titleColor = Color.FromArgb(148, 163, 184); // رمادي مزرق (مثل lblSampleRateLabel)
-            Color valueColor = Color.FromArgb(16, 185, 129);  // أخضر النجاح (مثل progressBarMain)
+            Color titleColor = Color.FromArgb(148, 163, 184);
+            Color valueColor = Color.FromArgb(16, 185, 129);
 
             // Ratio panel
             var lblRatioTitle = new Label
             {
-                Text = "نسبة الضغط:",
+                Text = "Compression Ratio:",
                 ForeColor = titleColor,
                 Font = new Font("Segoe UI", 9F),
                 AutoSize = true,
@@ -73,7 +71,7 @@ namespace SoundShrink_Desktop
             // Speed panel
             var lblSpeedTitle = new Label
             {
-                Text = "سرعة المعالجة:",
+                Text = "Processing Speed:",
                 ForeColor = titleColor,
                 Font = new Font("Segoe UI", 9F),
                 AutoSize = true,
@@ -93,7 +91,7 @@ namespace SoundShrink_Desktop
             // Elapsed time panel
             var lblElapsedTitle = new Label
             {
-                Text = "الوقت المنقضي:",
+                Text = "Elapsed Time:",
                 ForeColor = titleColor,
                 Font = new Font("Segoe UI", 9F),
                 AutoSize = true,
@@ -113,7 +111,7 @@ namespace SoundShrink_Desktop
             // Remaining time panel
             var lblRemainingTitle = new Label
             {
-                Text = "الوقت المتبقي:",
+                Text = "Remaining Time:",
                 ForeColor = titleColor,
                 Font = new Font("Segoe UI", 9F),
                 AutoSize = true,
@@ -133,7 +131,7 @@ namespace SoundShrink_Desktop
 
         private void BtnCancel_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show("هل تريد إلغاء عملية الضغط؟", "تأكيد الإلغاء",
+            if (MessageBox.Show("Do you want to cancel the compression?", "Confirm cancellation",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 CancelRequested?.Invoke(this, EventArgs.Empty);
@@ -195,14 +193,13 @@ namespace SoundShrink_Desktop
             int chartWidth = width - leftMargin - rightMargin;
             int chartHeight = height - topMargin - bottomMargin;
 
-            // ✅ ألوان متناسقة مع المشروع
-            Color bgColor = Color.FromArgb(17, 24, 39);           // مثل Sidebar
-            Color gridColor = Color.FromArgb(60, 70, 90);         // شبكة رمادية مزرقّة
-            Color axisColor = Color.FromArgb(100, 110, 130);      // محاور رمادية مزرقّة
-            Color ratioLineColor = Color.FromArgb(16, 185, 129);  // أخضر النجاح
-            Color speedLineColor = Color.FromArgb(255, 193, 7);   // أصفر
-            Color titleColor = Color.White;                       // أبيض
-            Color waitingColor = Color.FromArgb(100, 110, 130);   // رمادي مزرق
+            Color bgColor = Color.FromArgb(17, 24, 39);
+            Color gridColor = Color.FromArgb(60, 70, 90);
+            Color axisColor = Color.FromArgb(100, 110, 130);
+            Color ratioLineColor = Color.FromArgb(16, 185, 129);
+            Color speedLineColor = Color.FromArgb(255, 193, 7);
+            Color titleColor = Color.White;
+            Color waitingColor = Color.FromArgb(100, 110, 130);
 
             // Draw background
             using (Brush bgBrush = new SolidBrush(bgColor))
@@ -278,14 +275,14 @@ namespace SoundShrink_Desktop
                 {
                     using (Brush leftBrush = new SolidBrush(ratioLineColor))
                     {
-                        g.DrawString("نسبة الضغط", axisFont, leftBrush, 5, topMargin);
+                        g.DrawString("Compression Ratio", axisFont, leftBrush, 5, topMargin);
                         g.DrawString($"{maxRatio:F2}", axisFont, leftBrush, 5, height - bottomMargin - 20);
                         g.DrawString("1.0", axisFont, leftBrush, 5, topMargin + 10);
                     }
 
                     using (Brush rightBrush = new SolidBrush(speedLineColor))
                     {
-                        g.DrawString("السرعة MB/s", axisFont, rightBrush, width - 55, topMargin);
+                        g.DrawString("Speed MB/s", axisFont, rightBrush, width - 55, topMargin);
                         g.DrawString($"{maxSpeed:F2}", axisFont, rightBrush, width - 55, height - bottomMargin - 20);
                     }
                 }
@@ -295,7 +292,7 @@ namespace SoundShrink_Desktop
                 using (Font font = new Font("Segoe UI", 12F, FontStyle.Italic))
                 using (Brush brush = new SolidBrush(waitingColor))
                 {
-                    g.DrawString("في انتظار البيانات...", font, brush,
+                    g.DrawString("Waiting for data...", font, brush,
                         width / 2 - 100, height / 2);
                 }
             }
@@ -304,7 +301,7 @@ namespace SoundShrink_Desktop
             using (Font titleFont = new Font("Segoe UI", 11F, FontStyle.Bold))
             using (Brush titleBrush = new SolidBrush(titleColor))
             {
-                g.DrawString("📊 Compression Analysis", titleFont, titleBrush, width / 2 - 100, 5);
+                g.DrawString(" Compression Analysis", titleFont, titleBrush, width / 2 - 100, 5);
             }
         }
 
@@ -324,9 +321,9 @@ namespace SoundShrink_Desktop
                 return;
             }
 
-            _btnCancel.Text = "✅ تم الإلغاء";
+            _btnCancel.Text = " Cancelled";
             _btnCancel.Enabled = false;
-            _btnCancel.BackColor = Color.FromArgb(100, 110, 130); // رمادي مزرق
+            _btnCancel.BackColor = Color.FromArgb(100, 110, 130);
         }
 
         public new void Close()

@@ -8,7 +8,7 @@ namespace SoundShrink_Desktop.Algorithms
     {
         private CompressionResult _result;
         private readonly double _predictionCoeff;
-        private readonly float _quantStep;  // ✅ الآن يُقرأ من الإعدادات
+        private readonly float _quantStep;  
 
         public string AlgorithmName => $"Predictive Differential Coding (PDC) - StepSize={_quantStep:F3}";
 
@@ -17,7 +17,6 @@ namespace SoundShrink_Desktop.Algorithms
             settings = settings ?? new CompressionSettings();
             _predictionCoeff = settings.PredictionCoefficient;
 
-            // ✅ قراءة StepSize من الإعدادات بدلاً من القيمة الثابتة
             _quantStep = (float)settings.StepSize;
         }
 
@@ -35,27 +34,22 @@ namespace SoundShrink_Desktop.Algorithms
             float[] samples = BytesToFloats(audioData);
             var output = new List<byte>();
 
-            // Header: عدد العينات
             output.AddRange(BitConverter.GetBytes(samples.Length));
 
-            // العينة الأولى كمرجع
             short firstSample = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, (int)(samples[0] * 32767)));
             output.AddRange(BitConverter.GetBytes(firstSample));
 
             float previousSample = samples[0];
             for (int i = 1; i < samples.Length; i++)
             {
-                // التنبؤ بالقيمة الحالية بناءً على العينة السابقة
                 double predictedValue = previousSample * _predictionCoeff;
                 float error = samples[i] - (float)predictedValue;
 
-                // تكميم الخطأ باستخدام StepSize من الإعدادات
                 short quantizedError = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, (int)(error / _quantStep)));
                 output.AddRange(BitConverter.GetBytes(quantizedError));
 
                 previousSample = samples[i];
 
-                // ✅ إبلاغ التقدم كل 1000 عينة
                 if (progress != null && i % 1000 == 0)
                 {
                     int percent = (int)((double)i / samples.Length * 100);
@@ -63,7 +57,6 @@ namespace SoundShrink_Desktop.Algorithms
                 }
             }
 
-            // ✅ إبلاغ الاكتمال
             progress?.Report(100);
 
             _result = new CompressionResult
@@ -87,12 +80,11 @@ namespace SoundShrink_Desktop.Algorithms
             float previousSample = firstSample / 32767.0f;
             samples.Add(previousSample);
 
-            // إعادة البناء من الأخطاء المكممة
             for (int i = 6; i < compressedData.Length; i += 2)
             {
                 double predictedValue = previousSample * _predictionCoeff;
                 short quantizedError = BitConverter.ToInt16(compressedData, i);
-                float error = quantizedError * _quantStep; // ✅ فك التكميم باستخدام نفس StepSize
+                float error = quantizedError * _quantStep;
 
                 float reconstructed = (float)(predictedValue + error);
                 samples.Add(reconstructed);

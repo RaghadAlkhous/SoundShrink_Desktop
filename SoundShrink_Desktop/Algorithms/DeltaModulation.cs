@@ -26,7 +26,7 @@ namespace SoundShrink_Desktop.Algorithms
             var bits = new List<bool>(samples.Length);
             double predicted = 0.0;
 
-            // ✅ تحويل foreach إلى for لدعم إبلاغ التقدم
+      
             for (int i = 0; i < samples.Length; i++)
             {
                 float sample = samples[i];
@@ -35,7 +35,6 @@ namespace SoundShrink_Desktop.Algorithms
 
                 predicted += bit ? _stepSize : -_stepSize;
 
-                // ✅ إبلاغ التقدم كل 1000 عينة
                 if (progress != null && i % 1000 == 0)
                 {
                     int percent = (int)((double)i / samples.Length * 100);
@@ -43,7 +42,6 @@ namespace SoundShrink_Desktop.Algorithms
                 }
             }
 
-            // ✅ إبلاغ الاكتمال
             progress?.Report(100);
 
             int headerSize = 4;

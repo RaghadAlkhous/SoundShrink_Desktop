@@ -887,7 +887,6 @@ namespace SoundShrink_Desktop
 
                             if (!_isCompressionCancelled && _lastCompressionResult != null)
                             {
-                                // ✅ تفعيل زر عرض الرسم البياني
                                 btnShowChart.Enabled = true;
                                 ShowSaveFileDialog(algorithm);
                             }
@@ -1278,44 +1277,36 @@ namespace SoundShrink_Desktop
         {
             try
             {
-                // ✅ إعادة تعيين الخوارزمية إلى Nonlinear Quantization
                 if (cmbAlgorithm != null && cmbAlgorithm.Items.Count > 0)
                     cmbAlgorithm.SelectedIndex = 0;
 
-                // ✅ إعادة تعيين Sample Rate إلى Original
                 if (cmbSampleRate != null && cmbSampleRate.Items.Count > 0)
                     cmbSampleRate.SelectedIndex = 0;
 
-                // ✅ إعادة تعيين Quantization Levels إلى 256 (index 4)
                 if (cmbQuantLevels != null && cmbQuantLevels.Items.Count > 0)
                     cmbQuantLevels.SelectedIndex = 4;
 
-                // ✅ إعادة تعيين Bits Per Sample إلى 16 (index 3)
                 if (cmbBitsPerSampleComp != null && cmbBitsPerSampleComp.Items.Count > 0)
                     cmbBitsPerSampleComp.SelectedIndex = 3;
 
-                // ✅ إعادة تعيين Step Size (TrackBar) إلى 0.10 (value 10)
                 if (trkStepSize != null)
                 {
                     trkStepSize.Value = 10;
                     lblStepSizeValue.Text = "0.100";
                 }
 
-                // ✅ إعادة تعيين Initial Step Size إلى 0.10 (باستخدام TrackBar)
                 if (trkInitialStep != null)
                 {
                     trkInitialStep.Value = 10; // 0.10
                     lblInitialStepValue.Text = "0.100";
                 }
 
-                // ✅ إعادة تعيين Step Size Multiplier إلى 1.50 (باستخدام TrackBar)
                 if (trkStepMultiplier != null)
                 {
                     trkStepMultiplier.Value = 15; // 1.50
                     lblStepMultiplierValue.Text = "1.50";
                 }
 
-                // ✅ إعادة تعيين Delta Step إلى 0.040
                 if (numDeltaStep != null)
                 {
                     decimal deltaStepValue = 0.040m;
@@ -1366,10 +1357,8 @@ namespace SoundShrink_Desktop
         {
             try
             {
-                // ✅ حذف النسخة الأصلية المحفوظة (إذا لم تكن نفس الملف المفكوك)
                 if (!string.IsNullOrEmpty(_originalFilePath) && File.Exists(_originalFilePath))
                 {
-                    // تأكد من عدم حذف الملف المفكوك بالخطأ
                     if (_originalFilePath != _decompressedTempFile)
                     {
                         File.Delete(_originalFilePath);
@@ -1377,7 +1366,6 @@ namespace SoundShrink_Desktop
                     _originalFilePath = null;
                 }
 
-                // ✅ حذف ملف WAV المؤقت بعد فك الضغط
                 if (!string.IsNullOrEmpty(_decompressedTempFile) && File.Exists(_decompressedTempFile))
                 {
                     File.Delete(_decompressedTempFile);
@@ -1389,9 +1377,7 @@ namespace SoundShrink_Desktop
                 Console.WriteLine($"Error cleaning temp files: {ex.Message}");
             }
         }
-        /// <summary>
-        /// قراءة ملف .info واستخراج معلومات الضغط كـ Dictionary
-        /// </summary>
+    
         private Dictionary<string, string> ReadInfoFile(string infoFilePath)
         {
             var info = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -1403,7 +1389,6 @@ namespace SoundShrink_Desktop
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
-                // تجاهل الأسطر التي تبدأ بـ # (تعليقات)
                 if (line.TrimStart().StartsWith("#")) continue;
 
                 var parts = line.Split(new[] { ':' }, 2);
@@ -1412,7 +1397,6 @@ namespace SoundShrink_Desktop
                     string key = parts[0].Trim();
                     string value = parts[1].Trim();
 
-                    // تجنب تكرار المفاتيح (خذ أول قيمة فقط)
                     if (!info.ContainsKey(key))
                         info[key] = value;
                 }
@@ -1422,7 +1406,6 @@ namespace SoundShrink_Desktop
         }
         private CompressionSettings GetCurrentCompressionSettings()
         {
-            // ✅ قراءة قيمة QuantizationLevels من ComboBox
             int quantLevels = 256;
             if (cmbQuantLevels.SelectedItem != null &&
                 int.TryParse(cmbQuantLevels.SelectedItem.ToString(), out int parsedQuant))
@@ -1430,7 +1413,6 @@ namespace SoundShrink_Desktop
                 quantLevels = parsedQuant;
             }
 
-            // ✅ قراءة قيمة BitsPerSample من ComboBox
             int bitsPerSample = 16;
             if (cmbBitsPerSampleComp.SelectedItem != null &&
                 int.TryParse(cmbBitsPerSampleComp.SelectedItem.ToString(), out int parsedBits))
@@ -1438,13 +1420,10 @@ namespace SoundShrink_Desktop
                 bitsPerSample = parsedBits;
             }
 
-            // ✅ قراءة قيمة StepSize من TrackBar
             double stepSize = trkStepSize.Value / 100.0;
 
-            // ✅ قراءة InitialStepSize من TrackBar (بدلاً من NumericUpDown)
             double initialStepSize = trkInitialStep.Value / 100.0;
 
-            // ✅ قراءة StepSizeMultiplier من TrackBar (بدلاً من NumericUpDown)
             double stepMultiplier = trkStepMultiplier.Value / 10.0;
 
             return new CompressionSettings
@@ -1543,7 +1522,6 @@ namespace SoundShrink_Desktop
         }
         private ICompressionAlgorithm CreateAlgorithmByName(string algorithmName)
         {
-            // التحقق من اسم الخوارزمية باستخدام Contains لدعم الأسماء الكاملة
             if (algorithmName.Contains("Nonlinear"))
                 return new NonlinearQuantization();
             else if (algorithmName.Contains("DPCM") || algorithmName.Contains("Differential PCM"))
@@ -1558,9 +1536,6 @@ namespace SoundShrink_Desktop
                 throw new NotSupportedException($"Unsupported algorithm: {algorithmName}");
         }
 
-        /// <summary>
-        /// إنشاء كائن الخوارزمية مع إعدادات مخصصة من ملف .info
-        /// </summary>
         private ICompressionAlgorithm CreateAlgorithmWithSettings(string algorithmName, CompressionSettings settings)
         {
             if (algorithmName.Contains("Nonlinear"))
@@ -1579,16 +1554,13 @@ namespace SoundShrink_Desktop
 
         private string SaveAsTempWav(float[] samples, int sampleRate, int channels, int bitsPerSample)
         {
-            // ✅ تطبيع العينات قبل الحفظ
             samples = NormalizeSamples(samples);
 
-            // إنشاء مسار مؤقت فريد
             string tempPath = Path.Combine(
                 Path.GetTempPath(),
                 $"SoundShrink_Decompressed_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.wav"
             );
 
-            // ✅ إذا كان Stereo، تأكد من أن عدد العينات زوجي
             if (channels == 2)
             {
                 if (samples.Length % 2 != 0)
@@ -1599,10 +1571,8 @@ namespace SoundShrink_Desktop
                 }
             }
 
-            // إنشاء WaveFormat (IEEE Float 32-bit)
             var waveFormat = NAudio.Wave.WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channels);
 
-            // كتابة الملف باستخدام NAudio
             using (var writer = new NAudio.Wave.WaveFileWriter(tempPath, waveFormat))
             {
                 writer.WriteSamples(samples, 0, samples.Length);
@@ -1615,7 +1585,6 @@ namespace SoundShrink_Desktop
         {
             if (samples == null || samples.Length == 0) return samples;
 
-            // إيجاد أقصى قيمة مطلقة
             float maxAbs = 0;
             for (int i = 0; i < samples.Length; i++)
             {
@@ -1623,10 +1592,8 @@ namespace SoundShrink_Desktop
                 if (abs > maxAbs) maxAbs = abs;
             }
 
-            // إذا كانت القيم صغيرة جداً، لا حاجة للتطبيع
             if (maxAbs < 0.001f) return samples;
 
-            // إذا كانت القيم خارج النطاق، نقوم بالتطبيع
             if (maxAbs > 1.0f)
             {
                 float scale = 0.95f / maxAbs; // 0.95 لتجنب الوصول للحد الأقصى

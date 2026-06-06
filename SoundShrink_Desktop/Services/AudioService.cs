@@ -11,29 +11,24 @@ namespace SoundShrink_Desktop.Services
 
         public AudioFileInfo LoadAudio(string filePath)
         {
-            // تنظيف أي قارئ سابق
             if (_reader != null)
             {
                 _reader.Dispose();
             }
 
-            // التحقق من وجود الملف
             if (!File.Exists(filePath))
             {
                 throw new FileNotFoundException("الملف غير موجود.", filePath);
             }
 
-            // التحقق من نوع الملف
             string ext = Path.GetExtension(filePath).ToLower();
             if (ext != ".wav" && ext != ".mp3")
             {
                 throw new NotSupportedException("يُقبل حالياً ملفات WAV و MP3 فقط.");
             }
 
-            // تحميل الملف
             _reader = new AudioFileReader(filePath);
 
-            // استخراج المعلومات
             return new AudioFileInfo
             {
                 FilePath = filePath,

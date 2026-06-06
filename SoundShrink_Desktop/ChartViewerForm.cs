@@ -34,11 +34,9 @@ namespace SoundShrink_Desktop
 
         private void UpdateLabels()
         {
-            // تحديث العنوان
             this.Text = $"📊 تحليل عملية الضغط - {_algorithmName}";
             _lblTitle.Text = $"📊 Compression Analysis - {_algorithmName}";
 
-            // تحديث معلومات الأداء
             _lblTime.Text = $"⏱️ Total Time: {_totalTime.TotalSeconds:F2}s";
             _lblRatio.Text = $"📈 Final Ratio: {_finalRatio:F2}x";
             _lblPoints.Text = $"📊 Data Points: {_ratioHistory.Count}";
@@ -73,11 +71,9 @@ namespace SoundShrink_Desktop
             Color speedLineColor = Color.FromArgb(255, 193, 7);
             Color textColor = Color.FromArgb(200, 200, 200);
 
-            // الخلفية
             using (Brush bgBrush = new SolidBrush(bgColor))
                 g.FillRectangle(bgBrush, 0, 0, width, height);
 
-            // الشبكة
             using (Pen gridPen = new Pen(gridColor, 1))
             {
                 for (int i = 0; i <= 5; i++)
@@ -111,13 +107,11 @@ namespace SoundShrink_Desktop
                 return;
             }
 
-            // حساب القيم القصوى
             float maxRatio = _ratioHistory.Max();
             float maxSpeed = _speedHistory.Max();
             if (maxRatio < 0.001f) maxRatio = 1.0f;
             if (maxSpeed < 0.001f) maxSpeed = 1.0f;
 
-            // رسم خط نسبة الضغط (أخضر) مع تعبئة
             using (Pen ratioPen = new Pen(ratioLineColor, 3))
             using (Brush ratioFill = new SolidBrush(Color.FromArgb(40, 16, 185, 129)))
             {
@@ -144,7 +138,6 @@ namespace SoundShrink_Desktop
                 }
             }
 
-            // رسم خط السرعة (أصفر)
             using (Pen speedPen = new Pen(speedLineColor, 3))
             {
                 var points = new PointF[_speedHistory.Count];
@@ -159,10 +152,8 @@ namespace SoundShrink_Desktop
                     g.DrawLines(speedPen, points);
             }
 
-            // تسميات المحاور
             using (Font axisFont = new Font("Segoe UI", 9F, FontStyle.Bold))
             {
-                // المحور الأيسر (نسبة الضغط)
                 using (Brush leftBrush = new SolidBrush(ratioLineColor))
                 {
                     g.DrawString("Compression Ratio", axisFont, leftBrush, 5, topMargin);
@@ -170,7 +161,6 @@ namespace SoundShrink_Desktop
                     g.DrawString("1.0x", axisFont, leftBrush, 5, height - bottomMargin - 20);
                 }
 
-                // المحور الأيمن (السرعة)
                 using (Brush rightBrush = new SolidBrush(speedLineColor))
                 {
                     g.DrawString("Speed (MB/s)", axisFont, rightBrush, width - 65, topMargin);
@@ -178,7 +168,6 @@ namespace SoundShrink_Desktop
                     g.DrawString("0.00", axisFont, rightBrush, width - 65, height - bottomMargin - 20);
                 }
 
-                // المحور السفلي (الوقت)
                 using (Brush bottomBrush = new SolidBrush(textColor))
                 {
                     g.DrawString("Time →", axisFont, bottomBrush, width / 2 - 20, height - 20);

@@ -6,7 +6,6 @@ namespace SoundShrink_Desktop.Algorithms
     {
         string AlgorithmName { get; }
 
-        // ✅ إضافة IProgress<int> كـ parameter اختياري
         byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels, IProgress<int> progress = null);
 
         byte[] Decompress(byte[] compressedData, int sampleRate, int bitsPerSample, int channels);

@@ -52,7 +52,6 @@ namespace SoundShrink_Desktop.Algorithms
 
                 previousBit = currentBit;
 
-                // ✅ إبلاغ التقدم كل 1000 عينة
                 if (progress != null && i % 1000 == 0)
                 {
                     int percent = (int)((double)i / samples.Length * 100);
@@ -60,7 +59,6 @@ namespace SoundShrink_Desktop.Algorithms
                 }
             }
 
-            // ✅ إبلاغ الاكتمال
             progress?.Report(100);
 
             int headerSize = 4;

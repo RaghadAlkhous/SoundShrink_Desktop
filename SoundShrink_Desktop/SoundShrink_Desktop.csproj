@@ -136,12 +136,6 @@
     <Compile Include="CompressionProgressForm.Designer.cs">
       <DependentUpon>CompressionProgressForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="DecompressionOptionsForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="DecompressionOptionsForm.Designer.cs">
-      <DependentUpon>DecompressionOptionsForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="DecompressionSettingsForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -163,9 +157,6 @@
     <Compile Include="Services\AudioService.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DecompressionOptionsForm.resx">
-      <DependentUpon>DecompressionOptionsForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

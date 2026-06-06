@@ -34,10 +34,8 @@ namespace SoundShrink_Desktop.Algorithms
             float[] samples = BytesToFloats(audioData);
             var output = new List<byte>();
 
-            // Header: عدد العينات (4 بايتات)
             output.AddRange(BitConverter.GetBytes(samples.Length));
 
-            // العينة الأولى تُخزن كمرجع
             short firstSample = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, (int)(samples[0] * 32767)));
             output.AddRange(BitConverter.GetBytes(firstSample));
 
@@ -49,7 +47,6 @@ namespace SoundShrink_Desktop.Algorithms
                 output.AddRange(BitConverter.GetBytes(quantizedDiff));
                 previousSample = samples[i];
 
-                // ✅ إبلاغ التقدم كل 1000 عينة
                 if (progress != null && i % 1000 == 0)
                 {
                     int percent = (int)((double)i / samples.Length * 100);
@@ -57,7 +54,6 @@ namespace SoundShrink_Desktop.Algorithms
                 }
             }
 
-            // ✅ إبلاغ الاكتمال
             progress?.Report(100);
 
             _result = new CompressionResult
