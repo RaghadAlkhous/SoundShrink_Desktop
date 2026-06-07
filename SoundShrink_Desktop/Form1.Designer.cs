@@ -422,8 +422,7 @@ namespace SoundShrink_Desktop
             "8",
             "12",
             "16",
-            "24",
-            "32"});
+            });
             this.cmbBitsPerSampleComp.Location = new System.Drawing.Point(20, 402);
             this.cmbBitsPerSampleComp.Name = "cmbBitsPerSampleComp";
             this.cmbBitsPerSampleComp.Size = new System.Drawing.Size(190, 31);

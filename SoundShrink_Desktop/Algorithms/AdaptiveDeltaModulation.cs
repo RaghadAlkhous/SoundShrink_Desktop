@@ -7,16 +7,24 @@ namespace SoundShrink_Desktop.Algorithms
     public class AdaptiveDeltaModulation : ICompressionAlgorithm
     {
         private CompressionResult _result;
-        private readonly double _initialStepSize;
-        private readonly double _stepSizeMultiplier;
-        private readonly double _minStepSize;
-        private readonly double _maxStepSize;
+        private double _initialStepSize;
+        private double _stepSizeMultiplier;
+        private double _minStepSize;
+        private double _maxStepSize;
 
         public string AlgorithmName => "Adaptive Delta Modulation (ADM)";
 
         public AdaptiveDeltaModulation(CompressionSettings settings = null)
         {
             settings = settings ?? new CompressionSettings();
+
+            // ✅ Validation
+            if (settings.InitialStepSize <= 0)
+                throw new ArgumentException("InitialStepSize must be greater than 0");
+
+            if (settings.StepSizeMultiplier <= 1.0)
+                throw new ArgumentException("StepSizeMultiplier must be greater than 1.0");
+
             _initialStepSize = settings.InitialStepSize;
             _stepSizeMultiplier = settings.StepSizeMultiplier;
             _minStepSize = 0.005;
@@ -27,7 +35,6 @@ namespace SoundShrink_Desktop.Algorithms
         {
             var startTime = DateTime.Now;
             long originalSize = audioData.Length;
-
             float[] samples = BytesToFloats(audioData);
             var bits = new List<bool>(samples.Length);
             double predicted = 0.0;
@@ -38,58 +45,50 @@ namespace SoundShrink_Desktop.Algorithms
             {
                 bool currentBit = samples[i] >= predicted;
                 bits.Add(currentBit);
-
                 predicted += currentBit ? stepSize : -stepSize;
 
                 if (i > 0)
                 {
-                    stepSize = currentBit == previousBit
-                        ? stepSize * _stepSizeMultiplier
-                        : stepSize / _stepSizeMultiplier;
-
+                    stepSize = currentBit == previousBit ? stepSize * _stepSizeMultiplier : stepSize / _stepSizeMultiplier;
                     stepSize = Math.Max(_minStepSize, Math.Min(stepSize, _maxStepSize));
                 }
-
                 previousBit = currentBit;
-
-                if (progress != null && i % 1000 == 0)
-                {
-                    int percent = (int)((double)i / samples.Length * 100);
-                    progress.Report(percent);
-                }
+                if (progress != null && i % 1000 == 0) progress.Report((int)((double)i / samples.Length * 100));
             }
-
             progress?.Report(100);
 
-            int headerSize = 4;
+            int headerSize = 32;
             int dataSize = (bits.Count + 7) / 8;
             byte[] compressed = new byte[headerSize + dataSize];
 
             Buffer.BlockCopy(BitConverter.GetBytes(samples.Length), 0, compressed, 0, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(_initialStepSize), 0, compressed, 4, 8);
+            Buffer.BlockCopy(BitConverter.GetBytes(_stepSizeMultiplier), 0, compressed, 12, 8);
+            Buffer.BlockCopy(BitConverter.GetBytes(_minStepSize), 0, compressed, 20, 8);
+            Buffer.BlockCopy(BitConverter.GetBytes(sampleRate), 0, compressed, 28, 4); 
 
             for (int i = 0; i < bits.Count; i++)
             {
-                if (bits[i])
-                {
-                    compressed[headerSize + (i / 8)] |= (byte)(1 << (7 - (i % 8)));
-                }
+                if (bits[i]) compressed[headerSize + (i / 8)] |= (byte)(1 << (7 - (i % 8)));
             }
 
-            _result = new CompressionResult
-            {
-                OriginalSize = originalSize,
-                CompressedSize = compressed.Length,
-                CompressionRatio = (double)originalSize / compressed.Length,
-                ProcessingTime = DateTime.Now - startTime
-            };
-
+            _result = new CompressionResult { OriginalSize = originalSize, CompressedSize = compressed.Length, CompressionRatio = (double)originalSize / compressed.Length, ProcessingTime = DateTime.Now - startTime };
             return compressed;
         }
 
         public byte[] Decompress(byte[] compressedData, int sampleRate, int bitsPerSample, int channels)
         {
             int sampleCount = BitConverter.ToInt32(compressedData, 0);
-            int headerSize = 4;
+            double savedInitialStep = BitConverter.ToDouble(compressedData, 4);
+            double savedMultiplier = BitConverter.ToDouble(compressedData, 12);
+            double savedMinStep = BitConverter.ToDouble(compressedData, 20);
+            int savedSampleRate = BitConverter.ToInt32(compressedData, 28); 
+
+            _initialStepSize = savedInitialStep;
+            _stepSizeMultiplier = savedMultiplier;
+            _minStepSize = savedMinStep;
+            _maxStepSize = 0.5;
+            int headerSize = 32; 
 
             float[] reconstructed = new float[sampleCount];
             double current = 0.0;
@@ -99,25 +98,19 @@ namespace SoundShrink_Desktop.Algorithms
             for (int i = 0; i < sampleCount; i++)
             {
                 bool bit = (compressedData[headerSize + (i / 8)] & (1 << (7 - (i % 8)))) != 0;
-
                 current += bit ? stepSize : -stepSize;
                 reconstructed[i] = (float)current;
 
                 if (previousBit.HasValue)
                 {
-                    stepSize = bit == previousBit.Value
-                        ? stepSize * _stepSizeMultiplier
-                        : stepSize / _stepSizeMultiplier;
-
+                    stepSize = bit == previousBit.Value ? stepSize * _stepSizeMultiplier : stepSize / _stepSizeMultiplier;
                     stepSize = Math.Max(_minStepSize, Math.Min(stepSize, _maxStepSize));
                 }
-
                 previousBit = bit;
             }
 
             byte[] output = new byte[reconstructed.Length * 4];
             Buffer.BlockCopy(reconstructed, 0, output, 0, output.Length);
-
             return output;
         }
 

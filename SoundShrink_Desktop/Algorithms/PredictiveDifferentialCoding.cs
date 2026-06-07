@@ -7,94 +7,109 @@ namespace SoundShrink_Desktop.Algorithms
     public class PredictiveDifferentialCoding : ICompressionAlgorithm
     {
         private CompressionResult _result;
-        private readonly double _predictionCoeff;
-        private readonly float _quantStep;  
+        private double _predictionCoeff;
+        private float _quantStep;
+        private int _bitsPerSample;
 
         public string AlgorithmName => $"Predictive Differential Coding (PDC) - StepSize={_quantStep:F3}";
 
         public PredictiveDifferentialCoding(CompressionSettings settings = null)
         {
             settings = settings ?? new CompressionSettings();
-            _predictionCoeff = settings.PredictionCoefficient;
 
+            if (settings.PredictionCoefficient < 0.0 || settings.PredictionCoefficient > 1.0)
+                throw new ArgumentException("PredictionCoefficient must be between 0.0 and 1.0");
+
+            if (settings.StepSize <= 0.0 || settings.StepSize > 1.0)
+                throw new ArgumentException("StepSize must be between 0.0 and 1.0");
+
+            _predictionCoeff = settings.PredictionCoefficient;
             _quantStep = (float)settings.StepSize;
+            _bitsPerSample = 16; 
         }
 
         public PredictiveDifferentialCoding(double predictionCoeff, float quantStep = 0.1f)
         {
+            if (predictionCoeff < 0.0 || predictionCoeff > 1.0)
+                throw new ArgumentException("predictionCoeff must be between 0.0 and 1.0");
+
+            if (quantStep <= 0.0 || quantStep > 1.0)
+                throw new ArgumentException("quantStep must be between 0.0 and 1.0");
+
             _predictionCoeff = predictionCoeff;
             _quantStep = quantStep;
+            _bitsPerSample = 16;
         }
 
         public byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels, IProgress<int> progress = null)
         {
             var startTime = DateTime.Now;
             long originalSize = audioData.Length;
-
             float[] samples = BytesToFloats(audioData);
-            var output = new List<byte>();
 
-            output.AddRange(BitConverter.GetBytes(samples.Length));
+            int headerSize = 22;
+            byte[] result = new byte[headerSize + 2 + (samples.Length - 1) * 2];
+
+            Buffer.BlockCopy(BitConverter.GetBytes(samples.Length), 0, result, 0, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes((int)(_predictionCoeff * 1000000)), 0, result, 4, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes((int)(_quantStep * 1000000)), 0, result, 8, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(_bitsPerSample), 0, result, 12, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(headerSize), 0, result, 16, 2);
+            Buffer.BlockCopy(BitConverter.GetBytes(sampleRate), 0, result, 18, 4); 
 
             short firstSample = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, (int)(samples[0] * 32767)));
-            output.AddRange(BitConverter.GetBytes(firstSample));
+            Buffer.BlockCopy(BitConverter.GetBytes(firstSample), 0, result, headerSize, 2);
 
+            int position = headerSize + 2;
             float previousSample = samples[0];
             for (int i = 1; i < samples.Length; i++)
             {
                 double predictedValue = previousSample * _predictionCoeff;
                 float error = samples[i] - (float)predictedValue;
-
                 short quantizedError = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, (int)(error / _quantStep)));
-                output.AddRange(BitConverter.GetBytes(quantizedError));
-
+                Buffer.BlockCopy(BitConverter.GetBytes(quantizedError), 0, result, position, 2);
+                position += 2;
                 previousSample = samples[i];
-
-                if (progress != null && i % 1000 == 0)
-                {
-                    int percent = (int)((double)i / samples.Length * 100);
-                    progress.Report(percent);
-                }
+                if (progress != null && i % 1000 == 0) progress.Report((int)((double)i / samples.Length * 100));
             }
-
             progress?.Report(100);
 
-            _result = new CompressionResult
-            {
-                OriginalSize = originalSize,
-                CompressedSize = output.Count,
-                CompressionRatio = (double)originalSize / output.Count,
-                ProcessingTime = DateTime.Now - startTime
-            };
-
-            return output.ToArray();
+            _result = new CompressionResult { OriginalSize = originalSize, CompressedSize = result.Length, CompressionRatio = (double)originalSize / result.Length, ProcessingTime = DateTime.Now - startTime };
+            return result;
         }
 
         public byte[] Decompress(byte[] compressedData, int sampleRate, int bitsPerSample, int channels)
         {
             int sampleCount = BitConverter.ToInt32(compressedData, 0);
-            var samples = new List<float>(sampleCount);
+            int savedPredictionCoeffInt = BitConverter.ToInt32(compressedData, 4);
+            int savedQuantStepInt = BitConverter.ToInt32(compressedData, 8);
+            int savedBitsPerSample = BitConverter.ToInt32(compressedData, 12);
+            int headerSize = BitConverter.ToInt16(compressedData, 16);
+            int savedSampleRate = BitConverter.ToInt32(compressedData, 18); 
 
-            // استعادة العينة المرجعية
-            short firstSample = BitConverter.ToInt16(compressedData, 4);
+            _predictionCoeff = savedPredictionCoeffInt / 1000000.0;
+            _quantStep = savedQuantStepInt / 1000000.0f;
+            _bitsPerSample = savedBitsPerSample;
+
+            short firstSample = BitConverter.ToInt16(compressedData, headerSize);
             float previousSample = firstSample / 32767.0f;
-            samples.Add(previousSample);
+            var samples = new float[sampleCount];
+            samples[0] = previousSample;
+            int position = headerSize + 2;
 
-            for (int i = 6; i < compressedData.Length; i += 2)
+            for (int i = 1; i < sampleCount; i++)
             {
                 double predictedValue = previousSample * _predictionCoeff;
-                short quantizedError = BitConverter.ToInt16(compressedData, i);
+                short quantizedError = BitConverter.ToInt16(compressedData, position);
                 float error = quantizedError * _quantStep;
-
                 float reconstructed = (float)(predictedValue + error);
-                samples.Add(reconstructed);
+                samples[i] = reconstructed;
                 previousSample = reconstructed;
+                position += 2;
             }
 
-            float[] resultArray = samples.ToArray();
-            byte[] output = new byte[resultArray.Length * 4];
-            Buffer.BlockCopy(resultArray, 0, output, 0, output.Length);
-
+            byte[] output = new byte[samples.Length * 4];
+            Buffer.BlockCopy(samples, 0, output, 0, output.Length);
             return output;
         }
 

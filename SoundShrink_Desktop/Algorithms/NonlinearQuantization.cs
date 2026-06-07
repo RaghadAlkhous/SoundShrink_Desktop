@@ -7,20 +7,29 @@ namespace SoundShrink_Desktop.Algorithms
     public class NonlinearQuantization : ICompressionAlgorithm
     {
         private CompressionResult _result;
-        private readonly int _quantizationLevels;
-        private readonly double _mu;
+        private  int _quantizationLevels;
+        private  double _mu;
 
         public string AlgorithmName => $"Nonlinear Quantization (Mu-Law) - {_quantizationLevels} levels";
 
         public NonlinearQuantization(CompressionSettings settings = null)
         {
             settings = settings ?? new CompressionSettings();
+
+            // ✅ Validation
+            if (settings.QuantizationLevels < 2 || settings.QuantizationLevels > 256)
+                throw new ArgumentException("QuantizationLevels must be between 2 and 256");
+
             _quantizationLevels = settings.QuantizationLevels;
             _mu = 255.0;
         }
 
         public NonlinearQuantization(int quantizationLevels, double mu = 255.0)
         {
+            // ✅ Validation
+            if (quantizationLevels < 2 || quantizationLevels > 256)
+                throw new ArgumentException("quantizationLevels must be between 2 and 256");
+
             _quantizationLevels = quantizationLevels;
             _mu = mu;
         }
@@ -31,13 +40,36 @@ namespace SoundShrink_Desktop.Algorithms
             long originalSize = audioData.Length;
 
             float[] samples = BytesToFloats(audioData);
-            byte[] compressed = new byte[samples.Length];
 
+            // ✅ حساب عدد البتات المطلوبة
+            int bitsPerSample_compressed = (int)Math.Ceiling(Math.Log(_quantizationLevels, 2));
+            int totalBits = samples.Length * bitsPerSample_compressed;
+            int compressedSize = (totalBits + 7) / 8;
+
+            byte[] compressed = new byte[compressedSize];
+
+            // ✅ Bit Packing
+            int bitPosition = 0;
             for (int i = 0; i < samples.Length; i++)
             {
-                compressed[i] = MuLawEncode(samples[i]);
+                byte encodedValue = MuLawEncode(samples[i]);
 
-                
+                int byteIndex = bitPosition / 8;
+                int bitOffset = bitPosition % 8;
+
+                if (bitOffset + bitsPerSample_compressed <= 8)
+                {
+                    compressed[byteIndex] |= (byte)(encodedValue << bitOffset);
+                }
+                else
+                {
+                    int bitsInFirstByte = 8 - bitOffset;
+                    compressed[byteIndex] |= (byte)((encodedValue & ((1 << bitsInFirstByte) - 1)) << bitOffset);
+                    compressed[byteIndex + 1] = (byte)(encodedValue >> bitsInFirstByte);
+                }
+
+                bitPosition += bitsPerSample_compressed;
+
                 if (progress != null && i % 1000 == 0)
                 {
                     int percent = (int)((double)i / samples.Length * 100);
@@ -47,15 +79,24 @@ namespace SoundShrink_Desktop.Algorithms
 
             progress?.Report(100);
 
-           
-            byte[] result = new byte[4 + compressed.Length];
-            Buffer.BlockCopy(BitConverter.GetBytes(samples.Length), 0, result, 0, 4);
-            Buffer.BlockCopy(compressed, 0, result, 4, compressed.Length);
+            int headerSize = 20;
+            byte[] result = new byte[headerSize + compressed.Length];
+
+            // حفظ المعلومات في الـ Header
+            Buffer.BlockCopy(BitConverter.GetBytes(samples.Length), 0, result, 0, 4);           // [0-3]: sampleCount
+            Buffer.BlockCopy(BitConverter.GetBytes(_quantizationLevels), 0, result, 4, 4);      // [4-7]: quantizationLevels
+            Buffer.BlockCopy(BitConverter.GetBytes((int)_mu), 0, result, 8, 4);                 // [8-11]: mu
+            Buffer.BlockCopy(BitConverter.GetBytes(bitsPerSample_compressed), 0, result, 12, 4);// [12-15]: bitsPerSample
+
+            // ✅ إضافة Sample Rate للـ Header
+            Buffer.BlockCopy(BitConverter.GetBytes(sampleRate), 0, result, 16, 4);              // [16-19]: sampleRate
+
+            Buffer.BlockCopy(compressed, 0, result, headerSize, compressed.Length);
 
             _result = new CompressionResult
             {
                 OriginalSize = originalSize,
-                CompressedSize = result.Length, 
+                CompressedSize = result.Length,
                 CompressionRatio = (double)originalSize / result.Length,
                 ProcessingTime = DateTime.Now - startTime
             };
@@ -66,12 +107,33 @@ namespace SoundShrink_Desktop.Algorithms
         public byte[] Decompress(byte[] compressedData, int sampleRate, int bitsPerSample, int channels)
         {
             int sampleCount = BitConverter.ToInt32(compressedData, 0);
-            int headerSize = 4;
+            int savedQuantLevels = BitConverter.ToInt32(compressedData, 4);
+            int savedMu = BitConverter.ToInt32(compressedData, 8);
+            int bitsPerSample_compressed = BitConverter.ToInt32(compressedData, 12);
+            int savedSampleRate = BitConverter.ToInt32(compressedData, 16); // ✅ Sample Rate
+
+            int headerSize = 20; // ✅
+            _quantizationLevels = savedQuantLevels;
+            _mu = savedMu;
 
             float[] samples = new float[sampleCount];
+            int bitPosition = 0;
             for (int i = 0; i < sampleCount; i++)
             {
-                samples[i] = MuLawDecode(compressedData[headerSize + i]);
+                int byteIndex = headerSize + (bitPosition / 8);
+                int bitOffset = bitPosition % 8;
+                byte encodedValue;
+                if (bitOffset + bitsPerSample_compressed <= 8)
+                    encodedValue = (byte)((compressedData[byteIndex] >> bitOffset) & ((1 << bitsPerSample_compressed) - 1));
+                else
+                {
+                    int bitsInFirstByte = 8 - bitOffset;
+                    byte lowBits = (byte)(compressedData[byteIndex] >> bitOffset);
+                    byte highBits = (byte)(compressedData[byteIndex + 1] & ((1 << (bitsPerSample_compressed - bitsInFirstByte)) - 1));
+                    encodedValue = (byte)(lowBits | (highBits << bitsInFirstByte));
+                }
+                samples[i] = MuLawDecode(encodedValue);
+                bitPosition += bitsPerSample_compressed;
             }
 
             byte[] output = new byte[samples.Length * 4];

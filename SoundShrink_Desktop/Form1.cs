@@ -121,13 +121,11 @@ namespace SoundShrink_Desktop
             cmbAlgorithm.SelectedIndex = 0;
             cmbSampleRate.SelectedIndex = 0;
 
-            // ✅ تحديد القيمة الافتراضية لـ QuantizationLevels = 256
             if (cmbQuantLevels.Items.Count > 0)
-                cmbQuantLevels.SelectedIndex = 4; // 256 هو العنصر الخامس (index 4)
+                cmbQuantLevels.SelectedIndex = 4; 
 
-            // ✅ تحديد القيمة الافتراضية لـ BitsPerSample = 16
             if (cmbBitsPerSampleComp.Items.Count > 0)
-                cmbBitsPerSampleComp.SelectedIndex = 3; // 16 هو العنصر الرابع (index 3)
+                cmbBitsPerSampleComp.SelectedIndex = 3;
 
             UpdateButtonStates(false);
             SetupModernControls();
@@ -153,7 +151,6 @@ namespace SoundShrink_Desktop
 
         private void UpdateAlgorithmSettings()
         {
-            // إخفاء جميع الحقول الخاصة بالخوارزميات
             lblQuantLevels.Visible = false;
             cmbQuantLevels.Visible = false;
             lblDeltaStep.Visible = false;
@@ -164,11 +161,11 @@ namespace SoundShrink_Desktop
             trkStepSize.Visible = false;
             lblStepSizeValue.Visible = false;
             lblInitialStep.Visible = false;
-            trkInitialStep.Visible = false;          // ✅ تغيير: numInitialStep → trkInitialStep
-            lblInitialStepValue.Visible = false;     // ✅ إضافة
+            trkInitialStep.Visible = false;          
+            lblInitialStepValue.Visible = false;     
             lblStepMultiplier.Visible = false;
-            trkStepMultiplier.Visible = false;       // ✅ تغيير: numStepMultiplier → trkStepMultiplier
-            lblStepMultiplierValue.Visible = false;  // ✅ إضافة
+            trkStepMultiplier.Visible = false;       
+            lblStepMultiplierValue.Visible = false;  
 
             string algoName = cmbAlgorithm.SelectedItem?.ToString() ?? "";
 
@@ -208,19 +205,18 @@ namespace SoundShrink_Desktop
 
                 case "Adaptive Delta Modulation":
                     lblInitialStep.Visible = true;
-                    trkInitialStep.Visible = true;          // ✅ تغيير
-                    lblInitialStepValue.Visible = true;     // ✅ إضافة
+                    trkInitialStep.Visible = true;          
+                    lblInitialStepValue.Visible = true;     
                     lblStepMultiplier.Visible = true;
-                    trkStepMultiplier.Visible = true;       // ✅ تغيير
-                    lblStepMultiplierValue.Visible = true;  // ✅ إضافة
+                    trkStepMultiplier.Visible = true;       
+                    lblStepMultiplierValue.Visible = true;  
 
-                    // ✅ التأكد من القيم الافتراضية
                     if (trkInitialStep.Value == trkInitialStep.Minimum)
-                        trkInitialStep.Value = 10; // 0.10
+                        trkInitialStep.Value = 10; 
                     lblInitialStepValue.Text = (trkInitialStep.Value / 100.0).ToString("F3");
 
                     if (trkStepMultiplier.Value == trkStepMultiplier.Minimum)
-                        trkStepMultiplier.Value = 15; // 1.50
+                        trkStepMultiplier.Value = 15; 
                     lblStepMultiplierValue.Text = (trkStepMultiplier.Value / 10.0).ToString("F2");
                     break;
             }
@@ -663,12 +659,12 @@ namespace SoundShrink_Desktop
                                    $"QuantStep: {(2.0 / Math.Pow(2, bits)):F6}";
                     break;
                 case "Predictive Differential Coding":
-                    double stepSizeValue = trkStepSize.Value / 100.0;  // ✅ قراءة من TrackBar
+                    double stepSizeValue = trkStepSize.Value / 100.0;  
                     settingsText += $"StepSize: {stepSizeValue:F3}\n" +
                                    $"PredictionCoefficient: 0.90";
                     break;
                 case "Delta Modulation":
-                    double dmStepSize = trkStepSize.Value / 100.0;  // ✅ قراءة من TrackBar
+                    double dmStepSize = trkStepSize.Value / 100.0;  
                     settingsText += $"StepSize: {dmStepSize:F3}";
                     break;
                 case "Adaptive Delta Modulation":
@@ -749,7 +745,6 @@ namespace SoundShrink_Desktop
 
             string algoName = cmbAlgorithm.SelectedItem?.ToString() ?? "";
 
-            // ✅ إنشاء الخوارزمية مباشرة من إعدادات الشريط الجانبي
             ICompressionAlgorithm algorithm = CreateAlgorithmFromSidebar(algoName);
 
             if (algorithm == null)
@@ -807,7 +802,6 @@ namespace SoundShrink_Desktop
                 _lastCompressionResult = null;
                 _realProgress = 0;
 
-                // ✅ مسح البيانات القديمة
                 _savedRatioHistory.Clear();
                 _savedSpeedHistory.Clear();
                 _savedAlgorithmName = algorithm.AlgorithmName;
@@ -821,21 +815,18 @@ namespace SoundShrink_Desktop
 
                 _progressForm.Show(this);
 
-                // ✅ تنفيذ الضغط في Thread منفصل
                 System.Threading.Tasks.Task.Run(() =>
                 {
                     try
                     {
                         if (_isCompressionCancelled) return;
 
-                        // ✅ إنشاء Progress Handler بشكل صحيح
                         var progressReporter = new Progress<int>(value =>
                         {
                             _realProgress = value;
                             _processedBytes = (long)(_totalBytesToProcess * value / 100.0);
                         });
 
-                        // ✅ الضغط الفعلي
                         _compressedData = algorithm.Compress(
                             audioData,
                             selectedSampleRate,
@@ -846,7 +837,6 @@ namespace SoundShrink_Desktop
                         _currentAlgorithm = algorithm;
                         _lastCompressionResult = algorithm.GetCompressionStats();
 
-                        // ✅ حفظ النسبة النهائية والوقت
                         _savedFinalRatio = _lastCompressionResult?.CompressionRatio ?? 1.0;
                         _savedTotalTime = _lastCompressionResult?.ProcessingTime ?? TimeSpan.Zero;
                     }
@@ -863,7 +853,6 @@ namespace SoundShrink_Desktop
                     }
                     finally
                     {
-                        // ✅ حد أدنى 2 ثانية للعرض
                         var elapsed = DateTime.Now - _compressionStartTime;
                         if (elapsed.TotalMilliseconds < 2000)
                         {
@@ -981,7 +970,10 @@ namespace SoundShrink_Desktop
             {
                 saveDialog.Filter = "Compressed Audio Files (*.compressed)|*.compressed";
                 saveDialog.Title = "Save Compressed Audio File";
-                saveDialog.FileName = Path.GetFileNameWithoutExtension(_currentFile.FileName) + ".compressed";
+
+                string originalExt = Path.GetExtension(_currentFile.FilePath).TrimStart('.');
+                string fileNameWithoutExt = Path.GetFileNameWithoutExtension(_currentFile.FileName);
+                saveDialog.FileName = $"{fileNameWithoutExt}_{originalExt}.compressed";
 
                 if (saveDialog.ShowDialog() == DialogResult.OK)
                 {
@@ -1078,12 +1070,10 @@ namespace SoundShrink_Desktop
                 if (info.ContainsKey("BitsPerSample") && int.TryParse(info["BitsPerSample"], out int bps))
                     originalBitsPerSample = bps;
 
-                // ✅ قراءة الإعدادات الأصلية من الملف
                 var originalSettings = ReadAlgorithmSettings(info);
 
                 Cursor = Cursors.Default;
 
-                // ✅ عرض نافذة الخيارات
                 using (var settingsForm = new DecompressionSettingsForm(
                     algorithmName,
                     originalSampleRate,
@@ -1096,15 +1086,12 @@ namespace SoundShrink_Desktop
 
                     Cursor = Cursors.WaitCursor;
 
-                    // ✅ الحصول على الإعدادات النهائية
                     CompressionSettings finalSettings = settingsForm.AlgorithmSettings;
 
-                    // ✅ إنشاء الخوارزمية مع الإعدادات الصحيحة
                     ICompressionAlgorithm algorithm = CreateAlgorithmWithSettings(algorithmName, finalSettings);
 
                     byte[] compressedData = File.ReadAllBytes(compressedFilePath);
 
-                    // ✅ فك الضغط باستخدام الإعدادات من النافذة
                     byte[] decompressedData = algorithm.Decompress(
                         compressedData,
                         settingsForm.SampleRate,
@@ -1117,11 +1104,28 @@ namespace SoundShrink_Desktop
 
                     samples = NormalizeSamples(samples);
 
+                    string originalFileName = Path.GetFileNameWithoutExtension(compressedFilePath);
+                    string originalExtension = ".wav"; 
+
+                    if (originalFileName.Contains("_"))
+                    {
+                        string[] parts = originalFileName.Split('_');
+                        if (parts.Length > 0)
+                        {
+                            string possibleExt = "." + parts[parts.Length - 1].ToLower();
+                            if (possibleExt == ".mp3" || possibleExt == ".wav")
+                            {
+                                originalExtension = possibleExt;
+                            }
+                        }
+                    }
+
                     string tempWavPath = SaveAsTempWav(
                         samples,
                         settingsForm.SampleRate,
                         settingsForm.Channels,
-                        settingsForm.BitsPerSample);
+                        settingsForm.BitsPerSample,
+                        originalExtension); 
 
                     if (!File.Exists(tempWavPath))
                     {
@@ -1267,7 +1271,6 @@ namespace SoundShrink_Desktop
             _savedRatioHistory.Clear();
             _savedSpeedHistory.Clear();
 
-            // ✅✅✅ 4. إعادة تعيين إعدادات الخوارزميات إلى القيم الافتراضية ✅✅✅
             ResetAlgorithmSettings();
 
             CleanupTempFiles();
@@ -1552,13 +1555,13 @@ namespace SoundShrink_Desktop
                 throw new NotSupportedException($"Unsupported algorithm: {algorithmName}");
         }
 
-        private string SaveAsTempWav(float[] samples, int sampleRate, int channels, int bitsPerSample)
+        private string SaveAsTempWav(float[] samples, int sampleRate, int channels, int bitsPerSample, string originalExtension = ".wav")
         {
             samples = NormalizeSamples(samples);
 
             string tempPath = Path.Combine(
                 Path.GetTempPath(),
-                $"SoundShrink_Decompressed_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}.wav"
+                $"SoundShrink_Decompressed_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}{originalExtension.ToLower()}"
             );
 
             if (channels == 2)
@@ -1571,11 +1574,32 @@ namespace SoundShrink_Desktop
                 }
             }
 
-            var waveFormat = NAudio.Wave.WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channels);
+            var waveFormat = new WaveFormat(sampleRate, bitsPerSample, channels);
 
-            using (var writer = new NAudio.Wave.WaveFileWriter(tempPath, waveFormat))
+            using (var writer = new WaveFileWriter(tempPath, waveFormat))
             {
-                writer.WriteSamples(samples, 0, samples.Length);
+                if (bitsPerSample == 16)
+                {
+                    short[] samples16 = new short[samples.Length];
+                    for (int i = 0; i < samples.Length; i++)
+                    {
+                        samples16[i] = (short)(samples[i] * short.MaxValue);
+                    }
+
+                    byte[] bytes = new byte[samples16.Length * 2];
+                    Buffer.BlockCopy(samples16, 0, bytes, 0, bytes.Length);
+                    writer.Write(bytes, 0, bytes.Length);
+                }
+                else if (bitsPerSample == 32)
+                {
+                    byte[] bytes = new byte[samples.Length * 4];
+                    Buffer.BlockCopy(samples, 0, bytes, 0, bytes.Length);
+                    writer.Write(bytes, 0, bytes.Length);
+                }
+                else
+                {
+                    writer.WriteSamples(samples, 0, samples.Length);
+                }
             }
 
             return tempPath;
@@ -1596,7 +1620,7 @@ namespace SoundShrink_Desktop
 
             if (maxAbs > 1.0f)
             {
-                float scale = 0.95f / maxAbs; // 0.95 لتجنب الوصول للحد الأقصى
+                float scale = 0.95f / maxAbs; 
                 for (int i = 0; i < samples.Length; i++)
                 {
                     samples[i] *= scale;
