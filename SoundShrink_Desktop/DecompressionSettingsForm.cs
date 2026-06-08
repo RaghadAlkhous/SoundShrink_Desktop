@@ -33,9 +33,6 @@ namespace SoundShrink_Desktop
 
                 var defaultSettings = new CompressionSettings();
 
-                // IMPORTANT:
-                // Adaptive Delta MUST be checked before Delta Modulation
-
                 if (_algorithmName.Contains("Nonlinear"))
                 {
                     defaultSettings.QuantizationLevels = 256;

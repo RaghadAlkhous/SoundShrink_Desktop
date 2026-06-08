@@ -17,15 +17,13 @@ namespace SoundShrink_Desktop.Algorithms
         {
             settings = settings ?? new CompressionSettings();
 
-            if (settings.PredictionCoefficient < 0.0 || settings.PredictionCoefficient > 1.0)
-                throw new ArgumentException("PredictionCoefficient must be between 0.0 and 1.0");
+            int levels = settings.QuantizationLevels > 1 ? settings.QuantizationLevels : 65536; // الافتراضي 16-bit
+            if (levels < 2) levels = 2;
+            if (levels > 65536) levels = 65536;
 
-            if (settings.StepSize <= 0.0 || settings.StepSize > 1.0)
-                throw new ArgumentException("StepSize must be between 0.0 and 1.0");
-
+            _quantStep = (float)(2.0 / levels); 
+            _bitsPerSample = (int)Math.Ceiling(Math.Log(levels, 2));
             _predictionCoeff = settings.PredictionCoefficient;
-            _quantStep = (float)settings.StepSize;
-            _bitsPerSample = 16; 
         }
 
         public PredictiveDifferentialCoding(double predictionCoeff, float quantStep = 0.1f)

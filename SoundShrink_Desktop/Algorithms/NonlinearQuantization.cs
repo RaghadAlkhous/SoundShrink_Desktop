@@ -16,7 +16,6 @@ namespace SoundShrink_Desktop.Algorithms
         {
             settings = settings ?? new CompressionSettings();
 
-            // ✅ Validation
             if (settings.QuantizationLevels < 2 || settings.QuantizationLevels > 256)
                 throw new ArgumentException("QuantizationLevels must be between 2 and 256");
 
@@ -26,7 +25,6 @@ namespace SoundShrink_Desktop.Algorithms
 
         public NonlinearQuantization(int quantizationLevels, double mu = 255.0)
         {
-            // ✅ Validation
             if (quantizationLevels < 2 || quantizationLevels > 256)
                 throw new ArgumentException("quantizationLevels must be between 2 and 256");
 
@@ -41,7 +39,6 @@ namespace SoundShrink_Desktop.Algorithms
 
             float[] samples = BytesToFloats(audioData);
 
-            // ✅ حساب عدد البتات المطلوبة
             int bitsPerSample_compressed = (int)Math.Ceiling(Math.Log(_quantizationLevels, 2));
             int totalBits = samples.Length * bitsPerSample_compressed;
             int compressedSize = (totalBits + 7) / 8;

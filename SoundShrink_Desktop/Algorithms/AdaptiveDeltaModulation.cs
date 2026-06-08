@@ -18,19 +18,21 @@ namespace SoundShrink_Desktop.Algorithms
         {
             settings = settings ?? new CompressionSettings();
 
-            // ✅ Validation
-            if (settings.InitialStepSize <= 0)
-                throw new ArgumentException("InitialStepSize must be greater than 0");
+            int levels = settings.QuantizationLevels > 1 ? settings.QuantizationLevels : 256;
+            if (levels < 2) levels = 2;
+
+            if (settings.InitialStepSize > 0)
+                _initialStepSize = settings.InitialStepSize;
+            else
+                _initialStepSize = 2.0 / levels;
 
             if (settings.StepSizeMultiplier <= 1.0)
                 throw new ArgumentException("StepSizeMultiplier must be greater than 1.0");
 
-            _initialStepSize = settings.InitialStepSize;
             _stepSizeMultiplier = settings.StepSizeMultiplier;
             _minStepSize = 0.005;
             _maxStepSize = 0.5;
         }
-
         public byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels, IProgress<int> progress = null)
         {
             var startTime = DateTime.Now;

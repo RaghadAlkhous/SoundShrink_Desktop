@@ -16,12 +16,13 @@ namespace SoundShrink_Desktop.Algorithms
         {
             settings = settings ?? new CompressionSettings();
 
-            if (settings.BitsPerSample < 2 || settings.BitsPerSample > 16)
-                throw new ArgumentException("BitsPerSample must be between 2 and 16");
+            int levels = settings.QuantizationLevels > 1 ? settings.QuantizationLevels : (int)Math.Pow(2, settings.BitsPerSample);
 
-            _bitsPerSample = settings.BitsPerSample;
-            int levels = (int)Math.Pow(2, _bitsPerSample);
-            _quantStep = 2.0f / levels;
+            if (levels < 2) levels = 2;
+            if (levels > 65536) levels = 65536;
+
+            _bitsPerSample = (int)Math.Ceiling(Math.Log(levels, 2));
+            _quantStep = 2.0f / levels; 
         }
 
         public DPCM(float quantStep)

@@ -17,10 +17,15 @@ namespace SoundShrink_Desktop
         private Button btnShowChart;
         private Button btnDecompress;
         private Button btnResetWorkspace;
+        private Button btnResetToOriginal; 
         private Label lblCompressionSettings;
         private ComboBox cmbAlgorithm;
         private Label lblSampleRateLabel;
         private ComboBox cmbSampleRate;
+
+        // New Levels Field for all algorithms
+        private Label lblLevels;
+        private ComboBox cmbLevels;
 
         // Common compression controls
         private Label lblQuantLevels;
@@ -112,10 +117,13 @@ namespace SoundShrink_Desktop
             this.btnShowChart = new System.Windows.Forms.Button();
             this.btnDecompress = new System.Windows.Forms.Button();
             this.btnResetWorkspace = new System.Windows.Forms.Button();
+            this.btnResetToOriginal = new System.Windows.Forms.Button(); 
             this.lblCompressionSettings = new System.Windows.Forms.Label();
             this.cmbAlgorithm = new System.Windows.Forms.ComboBox();
             this.lblSampleRateLabel = new System.Windows.Forms.Label();
             this.cmbSampleRate = new System.Windows.Forms.ComboBox();
+            this.lblLevels = new System.Windows.Forms.Label(); 
+            this.cmbLevels = new System.Windows.Forms.ComboBox();
             this.lblQuantLevels = new System.Windows.Forms.Label();
             this.cmbQuantLevels = new System.Windows.Forms.ComboBox();
             this.lblDeltaStep = new System.Windows.Forms.Label();
@@ -202,6 +210,8 @@ namespace SoundShrink_Desktop
             this.panelSidebar.Controls.Add(this.cmbAlgorithm);
             this.panelSidebar.Controls.Add(this.lblSampleRateLabel);
             this.panelSidebar.Controls.Add(this.cmbSampleRate);
+            this.panelSidebar.Controls.Add(this.lblLevels);
+            this.panelSidebar.Controls.Add(this.cmbLevels);
             this.panelSidebar.Controls.Add(this.lblQuantLevels);
             this.panelSidebar.Controls.Add(this.cmbQuantLevels);
             this.panelSidebar.Controls.Add(this.lblDeltaStep);
@@ -220,6 +230,7 @@ namespace SoundShrink_Desktop
             this.panelSidebar.Controls.Add(this.btnCompressFile);
             this.panelSidebar.Controls.Add(this.btnShowChart);
             this.panelSidebar.Controls.Add(this.btnDecompress);
+            this.panelSidebar.Controls.Add(this.btnResetToOriginal);
             this.panelSidebar.Dock = System.Windows.Forms.DockStyle.Left;
             this.panelSidebar.Location = new System.Drawing.Point(0, 0);
             this.panelSidebar.Name = "panelSidebar";
@@ -283,7 +294,7 @@ namespace SoundShrink_Desktop
             this.lblCompressionSettings.AutoSize = false;
             this.lblCompressionSettings.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
             this.lblCompressionSettings.ForeColor = System.Drawing.Color.White;
-            this.lblCompressionSettings.Location = new System.Drawing.Point(20, 240);
+            this.lblCompressionSettings.Location = new System.Drawing.Point(20, 230);
             this.lblCompressionSettings.Name = "lblCompressionSettings";
             this.lblCompressionSettings.Size = new System.Drawing.Size(190, 25);
             this.lblCompressionSettings.TabIndex = 5;
@@ -303,7 +314,7 @@ namespace SoundShrink_Desktop
             "Predictive Differential Coding",
             "Delta Modulation",
             "Adaptive Delta Modulation"});
-            this.cmbAlgorithm.Location = new System.Drawing.Point(20, 275);
+            this.cmbAlgorithm.Location = new System.Drawing.Point(20, 260);
             this.cmbAlgorithm.Name = "cmbAlgorithm";
             this.cmbAlgorithm.Size = new System.Drawing.Size(190, 31);
             this.cmbAlgorithm.TabIndex = 6;
@@ -313,7 +324,7 @@ namespace SoundShrink_Desktop
             this.lblSampleRateLabel.AutoSize = false;
             this.lblSampleRateLabel.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblSampleRateLabel.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
-            this.lblSampleRateLabel.Location = new System.Drawing.Point(20, 315);
+            this.lblSampleRateLabel.Location = new System.Drawing.Point(20, 300);
             this.lblSampleRateLabel.Name = "lblSampleRateLabel";
             this.lblSampleRateLabel.Size = new System.Drawing.Size(190, 18);
             this.lblSampleRateLabel.TabIndex = 7;
@@ -334,21 +345,50 @@ namespace SoundShrink_Desktop
             "22050",
             "44100",
             "48000"});
-            this.cmbSampleRate.Location = new System.Drawing.Point(20, 337);
+            this.cmbSampleRate.Location = new System.Drawing.Point(20, 320);
             this.cmbSampleRate.Name = "cmbSampleRate";
             this.cmbSampleRate.Size = new System.Drawing.Size(190, 31);
             this.cmbSampleRate.TabIndex = 8;
+            // 
+            // lblLevels (New)
+            // 
+            this.lblLevels.AutoSize = false;
+            this.lblLevels.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.lblLevels.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
+            this.lblLevels.Location = new System.Drawing.Point(20, 360);
+            this.lblLevels.Name = "lblLevels";
+            this.lblLevels.Size = new System.Drawing.Size(190, 18);
+            this.lblLevels.TabIndex = 28;
+            this.lblLevels.Text = "Levels";
+            this.lblLevels.Visible = false;
+            // 
+            // cmbLevels (New)
+            // 
+            this.cmbLevels.BackColor = System.Drawing.Color.FromArgb(30, 41, 59);
+            this.cmbLevels.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbLevels.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbLevels.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.cmbLevels.ForeColor = System.Drawing.Color.White;
+            this.cmbLevels.FormattingEnabled = true;
+            this.cmbLevels.Items.AddRange(new object[] {
+            "2", "4", "8", "16", "32", "64", "128", "256"});
+            this.cmbLevels.Location = new System.Drawing.Point(20, 380);
+            this.cmbLevels.Name = "cmbLevels";
+            this.cmbLevels.Size = new System.Drawing.Size(190, 31);
+            this.cmbLevels.TabIndex = 29;
+            this.cmbLevels.Visible = false;
             // 
             // lblQuantLevels
             // 
             this.lblQuantLevels.AutoSize = false;
             this.lblQuantLevels.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblQuantLevels.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
-            this.lblQuantLevels.Location = new System.Drawing.Point(20, 380);
+            this.lblQuantLevels.Location = new System.Drawing.Point(20, 360);
             this.lblQuantLevels.Name = "lblQuantLevels";
             this.lblQuantLevels.Size = new System.Drawing.Size(190, 18);
             this.lblQuantLevels.TabIndex = 9;
             this.lblQuantLevels.Text = "Quantization Levels";
+            this.lblQuantLevels.Visible = false;
             // 
             // cmbQuantLevels
             // 
@@ -359,22 +399,19 @@ namespace SoundShrink_Desktop
             this.cmbQuantLevels.ForeColor = System.Drawing.Color.White;
             this.cmbQuantLevels.FormattingEnabled = true;
             this.cmbQuantLevels.Items.AddRange(new object[] {
-            "16",
-            "32",
-            "64",
-            "128",
-            "256"});
-            this.cmbQuantLevels.Location = new System.Drawing.Point(20, 402);
+            "16", "32", "64", "128", "256"});
+            this.cmbQuantLevels.Location = new System.Drawing.Point(20, 380);
             this.cmbQuantLevels.Name = "cmbQuantLevels";
             this.cmbQuantLevels.Size = new System.Drawing.Size(190, 31);
             this.cmbQuantLevels.TabIndex = 10;
+            this.cmbQuantLevels.Visible = false;
             // 
             // lblDeltaStep
             // 
             this.lblDeltaStep.AutoSize = false;
             this.lblDeltaStep.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblDeltaStep.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
-            this.lblDeltaStep.Location = new System.Drawing.Point(20, 380);
+            this.lblDeltaStep.Location = new System.Drawing.Point(20, 420);
             this.lblDeltaStep.Name = "lblDeltaStep";
             this.lblDeltaStep.Size = new System.Drawing.Size(190, 18);
             this.lblDeltaStep.TabIndex = 11;
@@ -388,7 +425,7 @@ namespace SoundShrink_Desktop
             this.numDeltaStep.DecimalPlaces = 3;
             this.numDeltaStep.ForeColor = System.Drawing.Color.White;
             this.numDeltaStep.Increment = new decimal(new int[] { 1, 0, 0, 196608 });
-            this.numDeltaStep.Location = new System.Drawing.Point(20, 402);
+            this.numDeltaStep.Location = new System.Drawing.Point(20, 440);
             this.numDeltaStep.Maximum = new decimal(new int[] { 1, 0, 0, 0 });
             this.numDeltaStep.Minimum = new decimal(new int[] { 1, 0, 0, 196608 });
             this.numDeltaStep.Name = "numDeltaStep";
@@ -402,7 +439,7 @@ namespace SoundShrink_Desktop
             this.lblBitsPerSampleComp.AutoSize = false;
             this.lblBitsPerSampleComp.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblBitsPerSampleComp.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
-            this.lblBitsPerSampleComp.Location = new System.Drawing.Point(20, 380);
+            this.lblBitsPerSampleComp.Location = new System.Drawing.Point(20, 420);
             this.lblBitsPerSampleComp.Name = "lblBitsPerSampleComp";
             this.lblBitsPerSampleComp.Size = new System.Drawing.Size(190, 18);
             this.lblBitsPerSampleComp.TabIndex = 16;
@@ -417,13 +454,8 @@ namespace SoundShrink_Desktop
             this.cmbBitsPerSampleComp.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.cmbBitsPerSampleComp.ForeColor = System.Drawing.Color.White;
             this.cmbBitsPerSampleComp.FormattingEnabled = true;
-            this.cmbBitsPerSampleComp.Items.AddRange(new object[] {
-            "4",
-            "8",
-            "12",
-            "16",
-            });
-            this.cmbBitsPerSampleComp.Location = new System.Drawing.Point(20, 402);
+            this.cmbBitsPerSampleComp.Items.AddRange(new object[] { "4", "8", "12", "16" });
+            this.cmbBitsPerSampleComp.Location = new System.Drawing.Point(20, 440);
             this.cmbBitsPerSampleComp.Name = "cmbBitsPerSampleComp";
             this.cmbBitsPerSampleComp.Size = new System.Drawing.Size(190, 31);
             this.cmbBitsPerSampleComp.TabIndex = 17;
@@ -434,7 +466,7 @@ namespace SoundShrink_Desktop
             this.lblPredictionCoeff.AutoSize = false;
             this.lblPredictionCoeff.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblPredictionCoeff.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
-            this.lblPredictionCoeff.Location = new System.Drawing.Point(20, 380);
+            this.lblPredictionCoeff.Location = new System.Drawing.Point(20, 420);
             this.lblPredictionCoeff.Name = "lblPredictionCoeff";
             this.lblPredictionCoeff.Size = new System.Drawing.Size(190, 18);
             this.lblPredictionCoeff.TabIndex = 18;
@@ -445,11 +477,11 @@ namespace SoundShrink_Desktop
             // 
             this.trkStepSize.BackColor = System.Drawing.Color.FromArgb(17, 24, 39);
             this.trkStepSize.LargeChange = 10;
-            this.trkStepSize.Location = new System.Drawing.Point(20, 402);
+            this.trkStepSize.Location = new System.Drawing.Point(20, 440);
             this.trkStepSize.Maximum = 100;
             this.trkStepSize.Minimum = 1;
             this.trkStepSize.Name = "trkStepSize";
-            this.trkStepSize.Size = new System.Drawing.Size(190, 45);
+            this.trkStepSize.Size = new System.Drawing.Size(190, 35);
             this.trkStepSize.SmallChange = 1;
             this.trkStepSize.TabIndex = 19;
             this.trkStepSize.TickFrequency = 10;
@@ -462,7 +494,7 @@ namespace SoundShrink_Desktop
             this.lblStepSizeValue.AutoSize = false;
             this.lblStepSizeValue.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblStepSizeValue.ForeColor = System.Drawing.Color.FromArgb(16, 185, 129);
-            this.lblStepSizeValue.Location = new System.Drawing.Point(20, 445);
+            this.lblStepSizeValue.Location = new System.Drawing.Point(20, 480);
             this.lblStepSizeValue.Name = "lblStepSizeValue";
             this.lblStepSizeValue.Size = new System.Drawing.Size(190, 20);
             this.lblStepSizeValue.TabIndex = 25;
@@ -475,7 +507,7 @@ namespace SoundShrink_Desktop
             this.lblInitialStep.AutoSize = false;
             this.lblInitialStep.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblInitialStep.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
-            this.lblInitialStep.Location = new System.Drawing.Point(20, 380);
+            this.lblInitialStep.Location = new System.Drawing.Point(20, 420);
             this.lblInitialStep.Name = "lblInitialStep";
             this.lblInitialStep.Size = new System.Drawing.Size(190, 18);
             this.lblInitialStep.TabIndex = 20;
@@ -486,11 +518,11 @@ namespace SoundShrink_Desktop
             // 
             this.trkInitialStep.BackColor = System.Drawing.Color.FromArgb(17, 24, 39);
             this.trkInitialStep.LargeChange = 10;
-            this.trkInitialStep.Location = new System.Drawing.Point(20, 402);
+            this.trkInitialStep.Location = new System.Drawing.Point(20, 440);
             this.trkInitialStep.Maximum = 100;
             this.trkInitialStep.Minimum = 1;
             this.trkInitialStep.Name = "trkInitialStep";
-            this.trkInitialStep.Size = new System.Drawing.Size(190, 45);
+            this.trkInitialStep.Size = new System.Drawing.Size(190, 35);
             this.trkInitialStep.SmallChange = 1;
             this.trkInitialStep.TabIndex = 21;
             this.trkInitialStep.TickFrequency = 10;
@@ -503,7 +535,7 @@ namespace SoundShrink_Desktop
             this.lblInitialStepValue.AutoSize = false;
             this.lblInitialStepValue.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblInitialStepValue.ForeColor = System.Drawing.Color.FromArgb(16, 185, 129);
-            this.lblInitialStepValue.Location = new System.Drawing.Point(20, 445);
+            this.lblInitialStepValue.Location = new System.Drawing.Point(20, 480);
             this.lblInitialStepValue.Name = "lblInitialStepValue";
             this.lblInitialStepValue.Size = new System.Drawing.Size(190, 20);
             this.lblInitialStepValue.TabIndex = 22;
@@ -516,7 +548,7 @@ namespace SoundShrink_Desktop
             this.lblStepMultiplier.AutoSize = false;
             this.lblStepMultiplier.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.lblStepMultiplier.ForeColor = System.Drawing.Color.FromArgb(148, 163, 184);
-            this.lblStepMultiplier.Location = new System.Drawing.Point(20, 470);
+            this.lblStepMultiplier.Location = new System.Drawing.Point(20, 510);
             this.lblStepMultiplier.Name = "lblStepMultiplier";
             this.lblStepMultiplier.Size = new System.Drawing.Size(190, 18);
             this.lblStepMultiplier.TabIndex = 23;
@@ -527,11 +559,11 @@ namespace SoundShrink_Desktop
             // 
             this.trkStepMultiplier.BackColor = System.Drawing.Color.FromArgb(17, 24, 39);
             this.trkStepMultiplier.LargeChange = 5;
-            this.trkStepMultiplier.Location = new System.Drawing.Point(20, 492);
+            this.trkStepMultiplier.Location = new System.Drawing.Point(20, 530);
             this.trkStepMultiplier.Maximum = 20;
             this.trkStepMultiplier.Minimum = 11;
             this.trkStepMultiplier.Name = "trkStepMultiplier";
-            this.trkStepMultiplier.Size = new System.Drawing.Size(190, 45);
+            this.trkStepMultiplier.Size = new System.Drawing.Size(190, 35);
             this.trkStepMultiplier.SmallChange = 1;
             this.trkStepMultiplier.TabIndex = 24;
             this.trkStepMultiplier.TickFrequency = 1;
@@ -544,7 +576,7 @@ namespace SoundShrink_Desktop
             this.lblStepMultiplierValue.AutoSize = false;
             this.lblStepMultiplierValue.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblStepMultiplierValue.ForeColor = System.Drawing.Color.FromArgb(16, 185, 129);
-            this.lblStepMultiplierValue.Location = new System.Drawing.Point(20, 535);
+            this.lblStepMultiplierValue.Location = new System.Drawing.Point(20, 570);
             this.lblStepMultiplierValue.Name = "lblStepMultiplierValue";
             this.lblStepMultiplierValue.Size = new System.Drawing.Size(190, 20);
             this.lblStepMultiplierValue.TabIndex = 26;
@@ -559,9 +591,9 @@ namespace SoundShrink_Desktop
             this.btnCompressFile.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCompressFile.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
             this.btnCompressFile.ForeColor = System.Drawing.Color.White;
-            this.btnCompressFile.Location = new System.Drawing.Point(20, 580);
+            this.btnCompressFile.Location = new System.Drawing.Point(20, 600);
             this.btnCompressFile.Name = "btnCompressFile";
-            this.btnCompressFile.Size = new System.Drawing.Size(190, 45);
+            this.btnCompressFile.Size = new System.Drawing.Size(190, 40);
             this.btnCompressFile.TabIndex = 13;
             this.btnCompressFile.Text = "Compress File";
             this.btnCompressFile.UseVisualStyleBackColor = false;
@@ -577,11 +609,11 @@ namespace SoundShrink_Desktop
             this.btnShowChart.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnShowChart.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnShowChart.ForeColor = System.Drawing.Color.White;
-            this.btnShowChart.Location = new System.Drawing.Point(20, 635);
+            this.btnShowChart.Location = new System.Drawing.Point(20, 645);
             this.btnShowChart.Name = "btnShowChart";
-            this.btnShowChart.Size = new System.Drawing.Size(190, 40);
+            this.btnShowChart.Size = new System.Drawing.Size(190, 35);
             this.btnShowChart.TabIndex = 27;
-            this.btnShowChart.Text = "📊 Show Chart";
+            this.btnShowChart.Text = " Show Chart";
             this.btnShowChart.UseVisualStyleBackColor = false;
             this.btnShowChart.Click += new System.EventHandler(this.btnShowChart_Click);
             // 
@@ -594,11 +626,26 @@ namespace SoundShrink_Desktop
             this.btnDecompress.ForeColor = System.Drawing.Color.White;
             this.btnDecompress.Location = new System.Drawing.Point(20, 685);
             this.btnDecompress.Name = "btnDecompress";
-            this.btnDecompress.Size = new System.Drawing.Size(190, 45);
+            this.btnDecompress.Size = new System.Drawing.Size(190, 40);
             this.btnDecompress.TabIndex = 14;
             this.btnDecompress.Text = "Decompress ACMP";
             this.btnDecompress.UseVisualStyleBackColor = false;
             this.btnDecompress.Click += new System.EventHandler(this.btnDecompress_Click);
+            // 
+            // btnResetToOriginal (New)
+            // 
+            this.btnResetToOriginal.BackColor = System.Drawing.Color.FromArgb(245, 158, 11);
+            this.btnResetToOriginal.FlatAppearance.BorderSize = 0;
+            this.btnResetToOriginal.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnResetToOriginal.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.btnResetToOriginal.ForeColor = System.Drawing.Color.White;
+            this.btnResetToOriginal.Location = new System.Drawing.Point(20, 730);
+            this.btnResetToOriginal.Name = "btnResetToOriginal";
+            this.btnResetToOriginal.Size = new System.Drawing.Size(190, 35);
+            this.btnResetToOriginal.TabIndex = 30;
+            this.btnResetToOriginal.Text = "Reset to Original";
+            this.btnResetToOriginal.UseVisualStyleBackColor = false;
+            this.btnResetToOriginal.Click += new System.EventHandler(this.btnResetToOriginal_Click);
             // 
             // panelMain
             // 

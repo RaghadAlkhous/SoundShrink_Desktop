@@ -89,6 +89,8 @@ namespace SoundShrink_Desktop
             btnPrevious.ApplyRoundedBorder(20);
             btnPlayPause.ApplyRoundedBorder(25);
             btnNext.ApplyRoundedBorder(20);
+            btnResetToOriginal.ApplyRoundedBorder(10);
+            btnShowChart.ApplyRoundedBorder(10);
         }
 
         private void InitializeEmptyState()
@@ -151,6 +153,7 @@ namespace SoundShrink_Desktop
 
         private void UpdateAlgorithmSettings()
         {
+            // إخفاء جميع عناصر التحكم أولاً
             lblQuantLevels.Visible = false;
             cmbQuantLevels.Visible = false;
             lblDeltaStep.Visible = false;
@@ -161,23 +164,21 @@ namespace SoundShrink_Desktop
             trkStepSize.Visible = false;
             lblStepSizeValue.Visible = false;
             lblInitialStep.Visible = false;
-            trkInitialStep.Visible = false;          
-            lblInitialStepValue.Visible = false;     
+            trkInitialStep.Visible = false;
+            lblInitialStepValue.Visible = false;
             lblStepMultiplier.Visible = false;
-            trkStepMultiplier.Visible = false;       
-            lblStepMultiplierValue.Visible = false;  
+            trkStepMultiplier.Visible = false;
+            lblStepMultiplierValue.Visible = false;
 
-            string algoName = cmbAlgorithm.SelectedItem?.ToString() ?? "";
+            string algoName = cmbAlgorithm.SelectedItem?.ToString() ?? " ";
+
+            lblQuantLevels.Visible = true;
+            cmbQuantLevels.Visible = true;
+            if (cmbQuantLevels.SelectedIndex == -1)
+                cmbQuantLevels.SelectedIndex = 4;
 
             switch (algoName)
             {
-                case "Nonlinear Quantization":
-                    lblQuantLevels.Visible = true;
-                    cmbQuantLevels.Visible = true;
-                    if (cmbQuantLevels.SelectedIndex == -1)
-                        cmbQuantLevels.SelectedIndex = 4;
-                    break;
-
                 case "DPCM":
                     lblBitsPerSampleComp.Visible = true;
                     cmbBitsPerSampleComp.Visible = true;
@@ -205,23 +206,22 @@ namespace SoundShrink_Desktop
 
                 case "Adaptive Delta Modulation":
                     lblInitialStep.Visible = true;
-                    trkInitialStep.Visible = true;          
-                    lblInitialStepValue.Visible = true;     
+                    trkInitialStep.Visible = true;
+                    lblInitialStepValue.Visible = true;
                     lblStepMultiplier.Visible = true;
-                    trkStepMultiplier.Visible = true;       
-                    lblStepMultiplierValue.Visible = true;  
+                    trkStepMultiplier.Visible = true;
+                    lblStepMultiplierValue.Visible = true;
 
                     if (trkInitialStep.Value == trkInitialStep.Minimum)
-                        trkInitialStep.Value = 10; 
+                        trkInitialStep.Value = 10;
                     lblInitialStepValue.Text = (trkInitialStep.Value / 100.0).ToString("F3");
 
                     if (trkStepMultiplier.Value == trkStepMultiplier.Minimum)
-                        trkStepMultiplier.Value = 15; 
+                        trkStepMultiplier.Value = 15;
                     lblStepMultiplierValue.Text = (trkStepMultiplier.Value / 10.0).ToString("F2");
                     break;
             }
         }
-
         private void CmbAlgorithm_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateAlgorithmSettings();
@@ -287,21 +287,25 @@ namespace SoundShrink_Desktop
                     _currentReader = null;
                     _currentFile = null;
 
-                    if (!string.IsNullOrEmpty(_originalFilePath) && File.Exists(_originalFilePath))
+                    // ✅ في وضع فك الضغط، لا نحذف ولا نغير _originalFilePath
+                    if (!_isDecompressedMode)
                     {
-                        if (_originalFilePath != tempFileToKeep)
+                        if (!string.IsNullOrEmpty(_originalFilePath) && File.Exists(_originalFilePath))
                         {
-                            File.Delete(_originalFilePath);
+                            if (!string.Equals(filePath, _originalFilePath, StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (_originalFilePath != tempFileToKeep)
+                                {
+                                    try { File.Delete(_originalFilePath); } catch { }
+                                }
+                            }
                         }
+                        _originalFilePath = null;
                     }
-                    _originalFilePath = null;
                 }
 
-                if (_isDecompressedMode && !string.IsNullOrEmpty(tempFileToKeep) && tempFileToKeep == filePath)
-                {
-                    _originalFilePath = filePath;
-                }
-                else
+                // ✅ في وضع فك الضغط، لا نغير _originalFilePath أبداً
+                if (!_isDecompressedMode)
                 {
                     _originalFilePath = Path.Combine(
                         Path.GetTempPath(),
@@ -313,7 +317,7 @@ namespace SoundShrink_Desktop
                 _currentFile = _audioService.LoadAudio(filePath);
                 UpdateAudioProperties();
 
-                lblFileLoadText.Text = "Loaded";
+                lblFileLoadText.Text = _isDecompressedMode ? "Loaded (Decompressed)" : "Loaded";
                 lblFileName.Text = _currentFile.FileName;
                 progressBarMain.Value = 0;
 
@@ -335,7 +339,8 @@ namespace SoundShrink_Desktop
                 Cursor = Cursors.Default;
             }
         }
-
+        
+        
         private void UpdateAudioProperties()
         {
             lblFileSizeValue.Text = $"{_currentFile.FileSizeBytes / (1024.0 * 1024.0):F2} MB";
@@ -635,8 +640,8 @@ namespace SoundShrink_Desktop
 
         private string GenerateReportText(CompressionResult result, string algorithmName)
         {
-            string algoName = cmbAlgorithm.SelectedItem?.ToString() ?? "";
-            string sampleRateText = cmbSampleRate.SelectedItem?.ToString() ?? "Original";
+            string algoName = cmbAlgorithm.SelectedItem?.ToString() ?? " ";
+            string sampleRateText = cmbSampleRate.SelectedItem?.ToString() ?? "Original ";
             int actualSampleRate = GetSelectedSampleRate();
 
             string settingsText = $"SampleRate: {actualSampleRate}\n";
@@ -658,15 +663,18 @@ namespace SoundShrink_Desktop
                     settingsText += $"BitsPerSample: {bits}\n" +
                                    $"QuantStep: {(2.0 / Math.Pow(2, bits)):F6}";
                     break;
+
                 case "Predictive Differential Coding":
-                    double stepSizeValue = trkStepSize.Value / 100.0;  
+                    double stepSizeValue = trkStepSize.Value / 100.0;
                     settingsText += $"StepSize: {stepSizeValue:F3}\n" +
                                    $"PredictionCoefficient: 0.90";
                     break;
+
                 case "Delta Modulation":
-                    double dmStepSize = trkStepSize.Value / 100.0;  
+                    double dmStepSize = trkStepSize.Value / 100.0;
                     settingsText += $"StepSize: {dmStepSize:F3}";
                     break;
+
                 case "Adaptive Delta Modulation":
                     double admInitialStep = trkInitialStep.Value / 100.0;
                     double admMultiplier = trkStepMultiplier.Value / 10.0;
@@ -679,18 +687,20 @@ namespace SoundShrink_Desktop
 
             double savingPercentage = (1.0 - (double)result.CompressedSize / result.OriginalSize) * 100.0;
 
+            // ✅ حفظ خصائص الملف الأصلي بشكل صريح ومضمون
             string report = $"OriginalSize: {result.OriginalSize}\n" +
                            $"CompressedSize: {result.CompressedSize}\n" +
                            $"SizeSaving: {savingPercentage:F2}%\n" +
                            $"CompressionRatio: {result.CompressionRatio:F2}x\n" +
                            $"ElapsedTime: {result.ProcessingTime.TotalSeconds:F2} seconds\n" +
                            $"Algorithm: {algorithmName}\n" +
-                           $"Channels: {_currentFile?.Channels ?? 1}\n\n" +
+                           $"OriginalSampleRate: {_currentFile?.SampleRate ?? 44100}\n" +
+                           $"OriginalChannels: {_currentFile?.Channels ?? 1}\n" +
+                           $"OriginalBitsPerSample: {_currentFile?.BitsPerSample ?? 16}\n\n" +
                            $"Settings:\n{settingsText}";
 
             return report;
         }
-
         private void UpdateOperationReport(CompressionResult result, string algorithmName)
         {
             string report = GenerateReportText(result, algorithmName);
@@ -1105,7 +1115,7 @@ namespace SoundShrink_Desktop
                     samples = NormalizeSamples(samples);
 
                     string originalFileName = Path.GetFileNameWithoutExtension(compressedFilePath);
-                    string originalExtension = ".wav"; 
+                    string originalExtension = ".wav";
 
                     if (originalFileName.Contains("_"))
                     {
@@ -1125,7 +1135,7 @@ namespace SoundShrink_Desktop
                         settingsForm.SampleRate,
                         settingsForm.Channels,
                         settingsForm.BitsPerSample,
-                        originalExtension); 
+                        originalExtension);
 
                     if (!File.Exists(tempWavPath))
                     {
@@ -1137,9 +1147,59 @@ namespace SoundShrink_Desktop
 
                     try
                     {
-                        HandleFileLoad(tempWavPath);
-                        _decompressedTempFile = tempWavPath;
+                        // ✅ FIX 1: حفظ الملف الأصلي الحالي قبل التعديل
+                        string savedOriginalPath = _originalFilePath;
+
+                        // ✅ FIX 2: تعيين المتغيرات قبل تحميل الملف
                         _isDecompressedMode = true;
+                        _decompressedTempFile = tempWavPath;
+
+                        // ✅ FIX 3: تحميل الملف المفكوك
+                        _currentFile = _audioService.LoadAudio(tempWavPath);
+                        UpdateAudioProperties();
+
+                        // ✅ FIX 4: استعادة المسار الأصلي إذا كان محفوظاً
+                        if (!string.IsNullOrEmpty(savedOriginalPath) && File.Exists(savedOriginalPath))
+                        {
+                            _originalFilePath = savedOriginalPath;
+                        }
+
+                        // ✅ FIX 5: تحديث الواجهة يدوياً لتعكس الملف المفكوك
+                        lblFileLoadText.Text = "Loaded (Decompressed)";
+                        lblFileName.Text = _currentFile.FileName;
+                        progressBarMain.Value = 0;
+                        this.Text = $"🎵 Decompressed - {Path.GetFileName(tempWavPath)}";
+
+                        lblCurrentTime.Text = "0:00";
+                        lblRemainingTime.Text = "-" + FormatTime(_currentFile.Duration);
+
+                        // ✅ FIX 6: تحديث خصائص الملف المفكوك (وليس الأصلي)
+                        lblSampleRatePropValue.Text = $"{settingsForm.SampleRate} Hz";
+                        lblChannelsValue.Text = settingsForm.Channels.ToString();
+                        lblBitsPerSampleValue.Text = $"{settingsForm.BitsPerSample} bit";
+
+                        if (File.Exists(tempWavPath))
+                        {
+                            long fileSizeBytes = new FileInfo(tempWavPath).Length;
+                            lblFileSizeValue.Text = $"{fileSizeBytes / (1024.0 * 1024.0):F2} MB";
+                            lblDurationValue.Text = FormatTime(_currentFile.Duration);
+                        }
+
+                        // ✅ FIX 7: تحديث التقارير
+                        string decompReport = $"✅ Decompression Successful\n\n" +
+                                              $"Algorithm: {algorithmName}\n" +
+                                              $"Output Sample Rate: {settingsForm.SampleRate} Hz\n" +
+                                              $"Output Channels: {settingsForm.Channels}\n" +
+                                              $"Output Bits/Sample: {settingsForm.BitsPerSample}\n" +
+                                              $"Output File: {Path.GetFileName(tempWavPath)}";
+
+                        lblReportContent.Text = decompReport;
+                        lblCompressionRatioTitle.Text = "Decompression Complete";
+                        lblProcessingSpeedTitle.Text = "Ready for Playback";
+                        progressBarCompression.Value = 100;
+                        progressBarSpeed.Value = 100;
+
+                        UpdateButtonStates(true);
                     }
                     catch (Exception ex)
                     {
@@ -1154,15 +1214,14 @@ namespace SoundShrink_Desktop
                         return;
                     }
 
-                    this.Text = $"🎵 Decompressed - {Path.GetFileName(compressedFilePath)}";
-
                     Cursor = Cursors.Default;
                     MessageBox.Show(
                         $"✅ Decompression completed successfully!\n\n" +
                         $" Algorithm: {algorithmName}\n" +
                         $" Settings: {(settingsForm.UseOriginalSettings ? "Original" : "Default")}\n" +
                         $" File: {Path.GetFileName(tempWavPath)}\n\n" +
-                        $"You can now play the decompressed file.",
+                        $"You can now play the decompressed file.\n\n" +
+                        $"Click 'Reset to Original' to return to the original file.",
                         "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     try
@@ -1189,7 +1248,6 @@ namespace SoundShrink_Desktop
                 Cursor = Cursors.Default;
             }
         }
-
         private string GetSettingsSummary(string algorithmName, CompressionSettings settings, int sampleRate, int channels)
         {
             string summary = $"Sample Rate: {sampleRate} Hz\nChannels: {(channels == 1 ? "Mono" : "Stereo")}\n";
@@ -1354,33 +1412,102 @@ namespace SoundShrink_Desktop
         }
 
 
+        private void btnResetToOriginal_Click(object sender, EventArgs e)
+        {
+            // 1. Verify that the original file exists
+            if (string.IsNullOrEmpty(_originalFilePath) || !File.Exists(_originalFilePath))
+            {
+                MessageBox.Show("No original file is saved to reset to.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                Cursor = Cursors.WaitCursor;
+
+                // 2. Stop any current playback and clean up the reader
+                if (_player != null)
+                {
+                    _player.Stop();
+                    _player.Dispose();
+                    _player = null;
+                }
+                _progressTimer?.Stop();
+                _audioService.CloseReader();
+                _currentReader = null;
+
+                // 3. Delete the decompressed temporary file only (since we are returning to the original, we no longer need it)
+                if (!string.IsNullOrEmpty(_decompressedTempFile) && File.Exists(_decompressedTempFile))
+                {
+                    try { File.Delete(_decompressedTempFile); } catch { }
+                    _decompressedTempFile = null;
+                }
+
+                // 4. Reset state variables
+                _isDecompressedMode = false;
+                _compressedData = null;
+                _lastCompressionResult = null;
+                _currentAlgorithm = null;
+                _savedRatioHistory.Clear();
+                _savedSpeedHistory.Clear();
+                btnShowChart.Enabled = false;
+
+                // 5. Reload the original file directly from the saved path
+                _currentFile = _audioService.LoadAudio(_originalFilePath);
+                UpdateAudioProperties();
+
+                // 6. Update the UI to reflect the return to the original state
+                lblFileLoadText.Text = "Loaded (Original)";
+                lblFileName.Text = _currentFile.FileName;
+                progressBarMain.Value = 0;
+                this.Text = $"Audio Compression Lab - {_currentFile.FileName} (Original)";
+
+                lblCurrentTime.Text = "0:00";
+                lblRemainingTime.Text = "-" + FormatTime(_currentFile.Duration);
+
+                UpdateButtonStates(true);
+                btnPlayPause.Text = "▶";
+
+                // Reset the reports UI
+                lblReportContent.Text = " ";
+                lblCompressionRatioTitle.Text = " ";
+                lblProcessingSpeedTitle.Text = " ";
+                progressBarCompression.Value = 0;
+                progressBarSpeed.Value = 0;
+
+                MessageBox.Show("The file has been successfully reset to its original values.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred while resetting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                Cursor = Cursors.Default;
+            }
+        }
+
         #region Decompression
 
         private void CleanupTempFiles()
         {
             try
             {
-                if (!string.IsNullOrEmpty(_originalFilePath) && File.Exists(_originalFilePath))
-                {
-                    if (_originalFilePath != _decompressedTempFile)
-                    {
-                        File.Delete(_originalFilePath);
-                    }
-                    _originalFilePath = null;
-                }
-
+                // ✅ لا تحذف _originalFilePath إلا إذا كان مختلفاً عن الملف المفكوك
                 if (!string.IsNullOrEmpty(_decompressedTempFile) && File.Exists(_decompressedTempFile))
                 {
                     File.Delete(_decompressedTempFile);
                     _decompressedTempFile = null;
                 }
+
+                // ⚠️ احذف _originalFilePath فقط عند Reset Workspace الحقيقي
+                // ليس هنا!
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error cleaning temp files: {ex.Message}");
             }
         }
-    
         private Dictionary<string, string> ReadInfoFile(string infoFilePath)
         {
             var info = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

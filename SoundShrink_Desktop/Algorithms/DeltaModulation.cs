@@ -15,10 +15,13 @@ namespace SoundShrink_Desktop.Algorithms
         {
             settings = settings ?? new CompressionSettings();
 
-            if (settings.StepSize <= 0)
-                throw new ArgumentException("StepSize must be greater than 0");
+            int levels = settings.QuantizationLevels > 1 ? settings.QuantizationLevels : 256;
+            if (levels < 2) levels = 2;
 
-            _stepSize = settings.StepSize;
+            if (settings.StepSize > 0)
+                _stepSize = settings.StepSize;
+            else
+                _stepSize = 2.0 / levels;
         }
 
         public byte[] Compress(byte[] audioData, int sampleRate, int bitsPerSample, int channels, IProgress<int> progress = null)
@@ -38,14 +41,13 @@ namespace SoundShrink_Desktop.Algorithms
             }
             progress?.Report(100);
 
-            // ✅ Header Size: 16 bytes
             int headerSize = 16;
             int dataSize = (bits.Count + 7) / 8;
             byte[] compressed = new byte[headerSize + dataSize];
 
             Buffer.BlockCopy(BitConverter.GetBytes(samples.Length), 0, compressed, 0, 4);
             Buffer.BlockCopy(BitConverter.GetBytes(_stepSize), 0, compressed, 4, 8);
-            Buffer.BlockCopy(BitConverter.GetBytes(sampleRate), 0, compressed, 12, 4); // ✅ Sample Rate
+            Buffer.BlockCopy(BitConverter.GetBytes(sampleRate), 0, compressed, 12, 4); 
 
             for (int i = 0; i < bits.Count; i++)
             {
